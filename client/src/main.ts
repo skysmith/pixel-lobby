@@ -45,7 +45,6 @@ type JoinPayload = { name: string; avatar: string };
 let joinPayload: JoinPayload | null = null;
 let gameStarted = false;
 let connectedRoom: Room | null = null;
-let currentVisitorName = "";
 const isMobileUa = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
 
 const mapSize = getMapSizePx(lobbyMap);
@@ -76,6 +75,7 @@ class LobbyScene extends Phaser.Scene {
   private interactHint!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private escapeKey!: Phaser.Input.Keyboard.Key;
+  private tapMoveTarget: { x: number; y: number } | null = null;
 
   constructor() {
     super("lobby");
@@ -95,6 +95,15 @@ class LobbyScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.escapeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (!isMobileUa || isTypingInUi()) {
+        return;
+      }
+      this.tapMoveTarget = {
+        x: Phaser.Math.Clamp(pointer.worldX, 0, mapSize.width),
+        y: Phaser.Math.Clamp(pointer.worldY, 0, mapSize.height)
+      };
+    });
 
     this.interactHint = this.add
       .text(14, 12, "", {
@@ -106,16 +115,6 @@ class LobbyScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(40)
       .setVisible(false);
-
-    this.add
-      .text(14, 48, `Visitor: ${currentVisitorName}`, {
-        color: "#2f425f",
-        fontSize: "13px",
-        backgroundColor: "#ffffffcc",
-        padding: { x: 8, y: 5 }
-      })
-      .setScrollFactor(0)
-      .setDepth(40);
 
     this.room.state.players.onAdd((player: any, key: string) => {
       const color = avatarColor[player.avatar] ?? 0xcfd7e8;
@@ -266,12 +265,37 @@ class LobbyScene extends Phaser.Scene {
     const left = !!this.cursors.left?.isDown;
     const right = !!this.cursors.right?.isDown;
     const typingInUi = isTypingInUi();
+    const localPlayer = this.players.get(this.localId);
+
+    const keyboardActive = up || down || left || right;
+    if (keyboardActive) {
+      this.tapMoveTarget = null;
+    }
+
+    let tapUp = false;
+    let tapDown = false;
+    let tapLeft = false;
+    let tapRight = false;
+    if (!keyboardActive && !typingInUi && localPlayer && this.tapMoveTarget) {
+      const dx = this.tapMoveTarget.x - localPlayer.visual.root.x;
+      const dy = this.tapMoveTarget.y - localPlayer.visual.root.y;
+      const arriveDistance = 10;
+      const axisDeadzone = 6;
+      if (dx * dx + dy * dy <= arriveDistance * arriveDistance) {
+        this.tapMoveTarget = null;
+      } else {
+        tapUp = dy < -axisDeadzone;
+        tapDown = dy > axisDeadzone;
+        tapLeft = dx < -axisDeadzone;
+        tapRight = dx > axisDeadzone;
+      }
+    }
 
     this.room.send("input", {
-      up: typingInUi ? false : up,
-      down: typingInUi ? false : down,
-      left: typingInUi ? false : left,
-      right: typingInUi ? false : right,
+      up: typingInUi ? false : keyboardActive ? up : tapUp,
+      down: typingInUi ? false : keyboardActive ? down : tapDown,
+      left: typingInUi ? false : keyboardActive ? left : tapLeft,
+      right: typingInUi ? false : keyboardActive ? right : tapRight,
       seq: ++this.inputSeq
     });
 
@@ -304,7 +328,6 @@ class LobbyScene extends Phaser.Scene {
       view.visual.body.y = -2 + bob;
     }
 
-    const localPlayer = this.players.get(this.localId);
     if (!localPlayer) {
       return;
     }
@@ -624,7 +647,6 @@ async function connectAndLaunch(payload: JoinPayload): Promise<boolean> {
   }
 
   joinPayload = payload;
-  currentVisitorName = payload.name;
   joinStatus.textContent = "Connecting...";
   joinButton.disabled = true;
 
