@@ -133,6 +133,7 @@ class LobbyScene extends Phaser.Scene {
   private interactHint!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private escapeKey!: Phaser.Input.Keyboard.Key;
+  private wasdKeys!: Record<"w" | "a" | "s" | "d", Phaser.Input.Keyboard.Key>;
   private tapMoveTarget: { x: number; y: number } | null = null;
 
   constructor() {
@@ -151,6 +152,12 @@ class LobbyScene extends Phaser.Scene {
     this.localId = this.room.sessionId;
 
     this.cursors = this.input.keyboard!.createCursorKeys();
+    this.wasdKeys = this.input.keyboard!.addKeys({
+      w: Phaser.Input.Keyboard.KeyCodes.W,
+      a: Phaser.Input.Keyboard.KeyCodes.A,
+      s: Phaser.Input.Keyboard.KeyCodes.S,
+      d: Phaser.Input.Keyboard.KeyCodes.D
+    }) as Record<"w" | "a" | "s" | "d", Phaser.Input.Keyboard.Key>;
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.escapeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
@@ -317,10 +324,10 @@ class LobbyScene extends Phaser.Scene {
       return;
     }
 
-    const up = !!this.cursors.up?.isDown;
-    const down = !!this.cursors.down?.isDown;
-    const left = !!this.cursors.left?.isDown;
-    const right = !!this.cursors.right?.isDown;
+    const up = !!(this.cursors.up?.isDown || this.wasdKeys.w?.isDown);
+    const down = !!(this.cursors.down?.isDown || this.wasdKeys.s?.isDown);
+    const left = !!(this.cursors.left?.isDown || this.wasdKeys.a?.isDown);
+    const right = !!(this.cursors.right?.isDown || this.wasdKeys.d?.isDown);
     const typingInUi = isTypingInUi();
     const localPlayer = this.players.get(this.localId);
 
