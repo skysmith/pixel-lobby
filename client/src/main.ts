@@ -705,20 +705,12 @@ function pickRandomAvatar(): string {
 }
 
 function chooseRendererType(): number {
-  if (!isMobileUa) {
-    return Phaser.AUTO;
+  // Mobile browsers (especially iOS, and especially inside embedded contexts)
+  // are inconsistent with WebGL availability. Use Canvas directly for reliability.
+  if (isMobileUa) {
+    return Phaser.CANVAS;
   }
-
-  const hasWebGlSupport = (() => {
-    try {
-      const canvas = document.createElement("canvas");
-      return Boolean(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
-    } catch {
-      return false;
-    }
-  })();
-
-  return hasWebGlSupport ? Phaser.AUTO : Phaser.CANVAS;
+  return Phaser.AUTO;
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
