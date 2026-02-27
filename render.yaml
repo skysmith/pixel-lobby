@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pixel-lobby-server
+    runtime: node
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /health
+    buildCommand: npm install && npm run build -w @pixel-lobby/shared && npm run build -w @pixel-lobby/server
+    startCommand: npm run start -w @pixel-lobby/server
+    envVars:
+      - key: NODE_VERSION
+        value: 20

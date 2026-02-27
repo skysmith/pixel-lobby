@@ -32,6 +32,33 @@ npm run dev
 
 If join gets stuck on `Connecting...`, verify the server terminal shows `colyseus listening on http://localhost:2567`.
 
+## Vercel deploy (client)
+
+- Framework preset: `Vite`
+- Root Directory: `client`
+- Build command: `npm run build`
+- Output directory: `dist`
+
+`client` now runs a `prebuild` step that builds the `shared` workspace first, so Vercel can resolve `@pixel-lobby/shared` during build.
+
+## Render deploy (server)
+
+This repo includes [`render.yaml`](render.yaml) for the Colyseus backend.
+
+1. In Render, create a new Blueprint service from this GitHub repo.
+2. Select the `pixel-lobby-server` service.
+3. Deploy and wait for it to become healthy.
+4. Confirm health endpoint:
+   - `https://<your-render-domain>/health`
+
+### Wire Vercel to Render
+
+Set this env var in your Vercel project:
+
+- `VITE_SERVER_URL=wss://<your-render-domain>`
+
+Then redeploy Vercel so the client connects to the hosted Colyseus server.
+
 ## Editing maps in Tiled
 
 1. Edit `shared/maps/lobby.tmj` in Tiled
