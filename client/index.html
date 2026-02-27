@@ -26,6 +26,94 @@
         font-family: monospace;
       }
 
+      #fallback {
+        min-height: 100vh;
+        padding: 48px 18px 72px;
+        box-sizing: border-box;
+        display: grid;
+        gap: 28px;
+        background: linear-gradient(180deg, #f7fbff 0%, #eef5fb 35%, #e2ecf7 100%);
+      }
+
+      #fallback[hidden] {
+        display: none !important;
+      }
+
+      .fallback-hero {
+        max-width: 720px;
+        margin: 0 auto;
+        text-align: center;
+        display: grid;
+        gap: 14px;
+      }
+
+      .fallback-hero h1 {
+        margin: 0;
+        font-size: clamp(26px, 5vw, 40px);
+      }
+
+      .fallback-hero p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      #fallbackStatus {
+        min-height: 1.2em;
+        color: #2d4376;
+        font-size: 14px;
+      }
+
+      #fallbackRetry {
+        justify-self: center;
+        padding: 12px 28px;
+        font-size: 15px;
+      }
+
+      .fallback-trail {
+        display: grid;
+        gap: 18px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        max-width: 980px;
+        margin: 0 auto;
+      }
+
+      .fallback-stop {
+        background: #ffffff;
+        border: 1px solid var(--panel-border);
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 14px 24px rgba(21, 36, 64, 0.06);
+        display: grid;
+        gap: 10px;
+      }
+
+      .fallback-stop h3 {
+        margin: 0;
+      }
+
+      .fallback-stop p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .fallback-stop a {
+        justify-self: start;
+        text-decoration: none;
+        border-radius: 10px;
+        padding: 8px 14px;
+        border: 1px solid #2f67dc33;
+        color: #2f67dc;
+        font-weight: 600;
+      }
+
+      .fallback-hint {
+        text-align: center;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
       #join {
         position: fixed;
         inset: 0;
@@ -98,6 +186,26 @@
       }
 
       #chat[hidden] {
+        display: none !important;
+      }
+
+      #mobileInteract {
+        position: fixed;
+        bottom: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 12px 28px;
+        border-radius: 999px;
+        border: none;
+        background: #2f67dc;
+        color: #ffffff;
+        font-weight: 600;
+        font-size: 15px;
+        box-shadow: 0 10px 25px rgba(28, 62, 135, 0.35);
+        z-index: 6;
+      }
+
+      #mobileInteract[hidden] {
         display: none !important;
       }
 
@@ -201,7 +309,45 @@
     </style>
   </head>
   <body>
+    <main id="fallback">
+      <section class="fallback-hero">
+        <p class="fallback-hint">Built in Logan Canyon · Best experienced on desktop</p>
+        <h1>Welcome to Skyler Smith’s canyon trail</h1>
+        <p>
+          This interactive lobby streams a tiny wilderness map where each stop opens a project or partner link.
+          We’ll try to launch the map on your device; if it can’t run smoothly, use the trail markers below to explore the same links.
+        </p>
+        <button id="fallbackRetry" type="button">Launch Interactive Lobby</button>
+        <p id="fallbackStatus">Checking your device…</p>
+      </section>
+      <section class="fallback-trail">
+        <article class="fallback-stop">
+          <h3>Clementine Kids</h3>
+          <p>Soft, playful bedding and room essentials for babies and kids.</p>
+          <a href="https://clementinekids.com" target="_blank" rel="noopener">Visit shop</a>
+        </article>
+        <article class="fallback-stop">
+          <h3>Bridger Gear Shop</h3>
+          <p>Mountain-ready apparel and goods inspired by canyon weekends.</p>
+          <a href="https://bridgergear.com" target="_blank" rel="noopener">Open store</a>
+        </article>
+        <article class="fallback-stop">
+          <h3>Real Estate · Dwell RG</h3>
+          <p>Work with Skyler Smith to buy or sell homes across northern Utah.</p>
+          <a href="https://dwellrg.com/agent/skyler-smith" target="_blank" rel="noopener">Meet your realtor</a>
+        </article>
+        <article class="fallback-stop">
+          <h3>Arcade Corner</h3>
+          <p>Jump to the Simple Dice Game and Qwixx experiments.</p>
+          <a href="https://github.com/skysmith/simple-dice-game" target="_blank" rel="noopener">Open projects</a>
+        </article>
+      </section>
+      <p class="fallback-hint">Want the full canyon vibe? Try again later on a desktop browser.</p>
+    </main>
+
     <div id="app"></div>
+
+    <button id="mobileInteract" type="button" hidden>Interact</button>
 
     <div id="join" hidden>
       <form class="card" id="joinForm">

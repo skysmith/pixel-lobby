@@ -65,6 +65,63 @@ const npcColor: Record<string, number> = {
 
 const avatarPool = Object.keys(avatarColor);
 
+const fallbackRoot = document.getElementById("fallback") as HTMLElement | null;
+const fallbackRetryButton = document.getElementById("fallbackRetry") as HTMLButtonElement | null;
+const fallbackStatusEl = document.getElementById("fallbackStatus") as HTMLParagraphElement | null;
+const mobileInteractButton = document.getElementById("mobileInteract") as HTMLButtonElement | null;
+let mobileInteractZone: InteractZone | null = null;
+
+function updateFallbackStatus(message: string) {
+  if (fallbackStatusEl) {
+    fallbackStatusEl.textContent = message;
+  }
+}
+
+function hideFallbackLanding() {
+  if (fallbackRoot && !fallbackRoot.hasAttribute("hidden")) {
+    fallbackRoot.setAttribute("hidden", "true");
+  }
+}
+
+function showFallbackLanding() {
+  fallbackRoot?.removeAttribute("hidden");
+}
+
+function setMobileInteractZone(zone: InteractZone | null) {
+  if (!isMobileUa || !mobileInteractButton) {
+    return;
+  }
+
+  mobileInteractZone = zone;
+  if (zone) {
+    mobileInteractButton.removeAttribute("hidden");
+    mobileInteractButton.textContent = `Open ${zone.title}`;
+  } else {
+    mobileInteractButton.setAttribute("hidden", "true");
+  }
+}
+
+mobileInteractButton?.addEventListener("click", () => {
+  if (mobileInteractZone) {
+    openInteractModal(mobileInteractZone);
+  }
+});
+
+function deviceCanRunInteractive(): boolean {
+  const canvas = document.createElement("canvas");
+  const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+  if (!gl) {
+    return false;
+  }
+
+  const navigatorWithMemory = navigator as Navigator & { deviceMemory?: number };
+  if (typeof navigatorWithMemory.deviceMemory === "number" && navigatorWithMemory.deviceMemory < 3) {
+    return false;
+  }
+
+  return true;
+}
+
 class LobbyScene extends Phaser.Scene {
   private room!: Room;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -97,13 +154,12 @@ class LobbyScene extends Phaser.Scene {
     this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.escapeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (!isMobileUa || isTypingInUi()) {
+      if (isTypingInUi()) {
         return;
       }
-      this.tapMoveTarget = {
-        x: Phaser.Math.Clamp(pointer.worldX, 0, mapSize.width),
-        y: Phaser.Math.Clamp(pointer.worldY, 0, mapSize.height)
-      };
+      const worldX = Phaser.Math.Clamp(pointer.worldX, 0, mapSize.width);
+      const worldY = Phaser.Math.Clamp(pointer.worldY, 0, mapSize.height);
+      this.tapMoveTarget = { x: worldX, y: worldY };
     });
 
     this.interactHint = this.add
@@ -340,12 +396,16 @@ class LobbyScene extends Phaser.Scene {
       if (nearestZone) {
         this.interactHint.setText(`Press Space: ${nearestZone.title}`);
         this.interactHint.setVisible(true);
+        setMobileInteractZone(nearestZone);
         if (interactPressed) {
           openInteractModal(nearestZone);
         }
       } else {
         this.interactHint.setVisible(false);
+        setMobileInteractZone(null);
       }
+    } else {
+      setMobileInteractZone(null);
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
@@ -650,10 +710,15 @@ const joinForm = document.getElementById("joinForm") as HTMLFormElement;
 const joinButton = document.getElementById("joinButton") as HTMLButtonElement;
 const joinStatus = document.getElementById("joinStatus") as HTMLParagraphElement;
 
-async function connectAndLaunch(payload: JoinPayload): Promise<boolean> {
+async function connectAndLaunch(
+  payload: JoinPayload,
+  options: { exposeJoinOnFailure?: boolean } = {}
+): Promise<boolean> {
   if (gameStarted) {
     return true;
   }
+
+  const exposeJoinOnFailure = options.exposeJoinOnFailure ?? false;
 
   joinPayload = payload;
   joinStatus.textContent = "Connecting...";
@@ -689,13 +754,14 @@ async function connectAndLaunch(payload: JoinPayload): Promise<boolean> {
     return true;
   } catch (err) {
     connectedRoom = null;
+    const hadInteractiveSession = gameStarted;
     gameStarted = false;
     joinButton.disabled = false;
     const details = formatJoinError(err);
     console.error("join failed", err);
     joinStatus.textContent = `Join failed: ${details}`;
     const join = document.getElementById("join") as HTMLElement;
-    join.hidden = false;
+    join.hidden = !(exposeJoinOnFailure || hadInteractiveSession);
     return false;
   }
 }
@@ -704,10 +770,63 @@ joinForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const name = (document.getElementById("name") as HTMLInputElement).value || generateGuestName();
   const avatar = (document.getElementById("avatar") as HTMLSelectElement).value || pickRandomAvatar();
-  await connectAndLaunch({ name, avatar });
+  await connectAndLaunch({ name, avatar }, { exposeJoinOnFailure: true });
 });
 
-void connectAndLaunch({ name: generateGuestName(), avatar: pickRandomAvatar() });
+async function bootstrapExperience() {
+  showFallbackLanding();
+
+  const canRun = deviceCanRunInteractive();
+  if (!canRun) {
+    updateFallbackStatus("This device can’t keep up with the live lobby—explore the canyon links below.");
+    fallbackRetryButton?.addEventListener("click", () => {
+      void attemptInteractiveLaunch(true);
+    });
+    fallbackRetryButton?.removeAttribute("disabled");
+    return;
+  }
+
+  fallbackRetryButton?.addEventListener("click", () => {
+    void attemptInteractiveLaunch(true);
+  });
+
+  await attemptInteractiveLaunch(false);
+}
+
+async function attemptInteractiveLaunch(manual: boolean) {
+  if (!fallbackRetryButton) {
+    return;
+  }
+
+  fallbackRetryButton.disabled = true;
+  updateFallbackStatus(manual ? "Trying the interactive lobby…" : "Loading interactive lobby…");
+
+  let success = false;
+  try {
+    success = await connectAndLaunch(
+      { name: generateGuestName(), avatar: pickRandomAvatar() },
+      { exposeJoinOnFailure: false }
+    );
+  } catch (err) {
+    console.error("Interactive lobby bootstrap failed", err);
+    success = false;
+  }
+
+  if (success) {
+    hideFallbackLanding();
+    fallbackRetryButton.disabled = false;
+    return;
+  }
+
+  fallbackRetryButton.disabled = false;
+  updateFallbackStatus(
+    manual
+      ? "Couldn’t load the lobby right now. Feel free to explore the links below and try again."
+      : "The interactive lobby isn’t available on this device. Explore the canyon trail below."
+  );
+}
+
+void bootstrapExperience();
 
 function generateGuestName(): string {
   const names = [
