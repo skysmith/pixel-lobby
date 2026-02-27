@@ -70,6 +70,7 @@ const fallbackRetryButton = document.getElementById("fallbackRetry") as HTMLButt
 const fallbackStatusEl = document.getElementById("fallbackStatus") as HTMLParagraphElement | null;
 const mobileInteractButton = document.getElementById("mobileInteract") as HTMLButtonElement | null;
 let mobileInteractZone: InteractZone | null = null;
+let activeZoneModalId: number | null = null;
 
 function updateFallbackStatus(message: string) {
   if (fallbackStatusEl) {
@@ -402,7 +403,7 @@ class LobbyScene extends Phaser.Scene {
     const interactPressed = !typingInUi && Phaser.Input.Keyboard.JustDown(this.interactKey);
     const missionaryNearby = this.handleMissionaryInteraction(localPlayer, interactPressed);
     if (!missionaryNearby) {
-      const nearestZone = findNearestZone(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y, 44);
+      const nearestZone = findNearestZoneAdaptive(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y);
       const onTopZone = findNearestZone(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y, 14);
       if (nearestZone) {
         this.interactHint.setText(`Press Space: ${nearestZone.title}`);
@@ -428,6 +429,8 @@ class LobbyScene extends Phaser.Scene {
       setMobileInteractZone(null);
       this.activeAutoZoneId = null;
     }
+
+    autoCloseZoneModalIfOutOfRange(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y);
 
     if (Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
       closeInteractModal();
@@ -808,6 +811,45 @@ function findNearestZone(zones: InteractZone[], x: number, y: number, maxDistanc
   return nearest;
 }
 
+function findNearestZoneAdaptive(zones: InteractZone[], x: number, y: number): InteractZone | null {
+  let nearest: InteractZone | null = null;
+  let best = Number.POSITIVE_INFINITY;
+
+  for (const zone of zones) {
+    const dist = zoneDistanceToPoint(zone, x, y);
+    const maxDistance = zone.url ? 28 : 44;
+    if (dist <= maxDistance && dist < best) {
+      best = dist;
+      nearest = zone;
+    }
+  }
+
+  return nearest;
+}
+
+function zoneDistanceToPoint(zone: InteractZone, x: number, y: number): number {
+  const dx = x - Phaser.Math.Clamp(x, zone.x, zone.x + zone.width);
+  const dy = y - Phaser.Math.Clamp(y, zone.y, zone.y + zone.height);
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function autoCloseZoneModalIfOutOfRange(zones: InteractZone[], x: number, y: number) {
+  if (activeZoneModalId === null) {
+    return;
+  }
+
+  const zone = zones.find((entry) => entry.id === activeZoneModalId);
+  if (!zone) {
+    activeZoneModalId = null;
+    return;
+  }
+
+  const maxDistance = zone.url ? 28 : 44;
+  if (zoneDistanceToPoint(zone, x, y) > maxDistance) {
+    closeInteractModal();
+  }
+}
+
 function shouldAutoOpenZone(zone: InteractZone): boolean {
   return (
     zone.name === "welcome-sign" ||
@@ -1025,7 +1067,8 @@ function openInteractModal(zone: InteractZone) {
     zone.secondaryUrl,
     zone.previewImage,
     zone.previewUrl,
-    zone.previewText
+    zone.previewText,
+    zone.id
   );
 }
 
@@ -1038,8 +1081,10 @@ function openExternalLinkModal(
   secondaryUrl?: string,
   previewImage?: string,
   previewUrl?: string,
-  previewText?: string
+  previewText?: string,
+  sourceZoneId?: number
 ) {
+  activeZoneModalId = sourceZoneId ?? null;
   const modal = document.getElementById("interactModal") as HTMLElement;
   const titleNode = document.getElementById("interactTitle") as HTMLElement;
   const bodyNode = document.getElementById("interactBody") as HTMLElement;
@@ -1095,6 +1140,7 @@ function openExternalLinkModal(
 }
 
 function closeInteractModal() {
+  activeZoneModalId = null;
   const modal = document.getElementById("interactModal") as HTMLElement;
   modal.hidden = true;
 }
