@@ -1246,12 +1246,12 @@ export const lobbyMap: TiledMap = {
             {
               "name": "title",
               "type": "string",
-              "value": "Welcome to Logan Canyon Hub"
+              "value": "Welcome to Skyler Smith’s site"
             },
             {
               "name": "message",
               "type": "string",
-              "value": "Walk the canyon trail and press Space near stops to open projects."
+              "value": "Hi, I’m Skyler—this canyon is my site. Walk to each sign and press Space to open projects, partners, or tools. I build digital experiences, playful side quests, and real estate tech from Logan, Utah."
             },
             {
               "name": "cta",

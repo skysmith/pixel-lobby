@@ -557,7 +557,7 @@ function drawZoneSprite(scene: Phaser.Scene, zone: InteractZone) {
   g.setDepth(7);
 
   if (zone.kind === "lemonade") {
-    // Lemonade stand (awning + counter)
+    // Clementine Kids stand (keep lemonade look, custom label)
     g.fillStyle(0xfde48a, 1);
     g.fillRect(cx - 20, cy - 18, 40, 6);
     g.fillStyle(0xef8f6a, 1);
@@ -566,7 +566,15 @@ function drawZoneSprite(scene: Phaser.Scene, zone: InteractZone) {
     g.fillRect(cx - 16, cy - 8, 32, 16);
     g.fillStyle(0x6d4626, 1);
     g.fillRect(cx - 18, cy + 8, 36, 4);
-    scene.add.text(cx, cy - 2, "LEMON", { color: "#fff9e7", fontSize: "8px" }).setOrigin(0.5).setDepth(8);
+    scene
+      .add.text(cx, cy - 4, "CLEMENTINE\nKIDS", {
+        color: "#fff9e7",
+        fontSize: "7px",
+        align: "center"
+      })
+      .setOrigin(0.5)
+      .setDepth(8)
+      .setLineSpacing(-2);
   } else if (zone.kind === "arcade") {
     // Arcade cabinet cluster
     g.fillStyle(0x2f3c8c, 1);
