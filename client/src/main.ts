@@ -135,6 +135,7 @@ class LobbyScene extends Phaser.Scene {
   private escapeKey!: Phaser.Input.Keyboard.Key;
   private wasdKeys!: Record<"w" | "a" | "s" | "d", Phaser.Input.Keyboard.Key>;
   private tapMoveTarget: { x: number; y: number } | null = null;
+  private activeAutoZoneId: number | null = null;
 
   constructor() {
     super("lobby");
@@ -400,6 +401,7 @@ class LobbyScene extends Phaser.Scene {
     const missionaryNearby = this.handleMissionaryInteraction(localPlayer, interactPressed);
     if (!missionaryNearby) {
       const nearestZone = findNearestZone(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y, 44);
+      const onTopZone = findNearestZone(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y, 14);
       if (nearestZone) {
         this.interactHint.setText(`Press Space: ${nearestZone.title}`);
         this.interactHint.setVisible(true);
@@ -411,8 +413,18 @@ class LobbyScene extends Phaser.Scene {
         this.interactHint.setVisible(false);
         setMobileInteractZone(null);
       }
+
+      if (onTopZone && shouldAutoOpenZone(onTopZone)) {
+        if (this.activeAutoZoneId !== onTopZone.id) {
+          openInteractModal(onTopZone);
+          this.activeAutoZoneId = onTopZone.id;
+        }
+      } else {
+        this.activeAutoZoneId = null;
+      }
     } else {
       setMobileInteractZone(null);
+      this.activeAutoZoneId = null;
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
@@ -711,6 +723,15 @@ function findNearestZone(zones: InteractZone[], x: number, y: number, maxDistanc
   }
 
   return nearest;
+}
+
+function shouldAutoOpenZone(zone: InteractZone): boolean {
+  return (
+    zone.name === "welcome-sign" ||
+    zone.name === "stop-real-estate" ||
+    zone.name === "stop-bridger-shop" ||
+    zone.name === "stop-clementine-lemonade"
+  );
 }
 
 const joinForm = document.getElementById("joinForm") as HTMLFormElement;
