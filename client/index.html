@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixel Lobby</title>
+    <style>
+      html,
+      body,
+      #app {
+        margin: 0;
+        height: 100%;
+        background: #202634;
+        color: #e8ecf4;
+        font-family: monospace;
+      }
+
+      #join {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(10, 14, 20, 0.75);
+        z-index: 5;
+      }
+
+      #join .card {
+        background: #111722;
+        border: 1px solid #2f3b55;
+        border-radius: 12px;
+        width: min(92vw, 360px);
+        padding: 18px;
+        display: grid;
+        gap: 10px;
+      }
+
+      input,
+      select,
+      button {
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid #394968;
+        background: #0f1522;
+        color: #ecf0f8;
+      }
+
+      #chat {
+        position: fixed;
+        right: 10px;
+        top: 10px;
+        width: 300px;
+        max-height: 72vh;
+        background: rgba(7, 10, 14, 0.85);
+        border: 1px solid #2f3b55;
+        border-radius: 10px;
+        display: grid;
+        grid-template-rows: 1fr auto;
+        z-index: 4;
+      }
+
+      #messages {
+        list-style: none;
+        margin: 0;
+        padding: 8px;
+        overflow: auto;
+        display: grid;
+        gap: 6px;
+        font-size: 12px;
+      }
+
+      #chatForm {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 6px;
+        padding: 8px;
+      }
+
+      @media (max-width: 900px) {
+        #chat {
+          width: calc(100vw - 20px);
+          max-width: 420px;
+          top: auto;
+          bottom: 10px;
+          max-height: 34vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="join">
+      <form class="card" id="joinForm">
+        <h3 style="margin: 0">Enter Lobby</h3>
+        <input id="name" maxlength="18" placeholder="Name" required value="Player" />
+        <select id="avatar">
+          <option value="cat">Cat</option>
+          <option value="fox">Fox</option>
+          <option value="frog">Frog</option>
+          <option value="bear">Bear</option>
+        </select>
+        <button type="submit">Join</button>
+      </form>
+    </div>
+
+    <aside id="chat" hidden>
+      <ul id="messages"></ul>
+      <form id="chatForm">
+        <input id="chatInput" maxlength="140" placeholder="Say something..." />
+        <button type="submit">Send</button>
+      </form>
+    </aside>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

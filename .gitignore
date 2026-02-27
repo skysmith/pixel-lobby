@@ -1,0 +1,8 @@
+node_modules
+.DS_Store
+.env
+client/dist
+server/dist
+shared/dist
+client/tsconfig.tsbuildinfo
+npm-debug.log*

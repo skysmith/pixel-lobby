@@ -1,0 +1,20 @@
+{
+  "name": "@pixel-lobby/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@pixel-lobby/shared": "0.1.0",
+    "colyseus.js": "^0.15.13",
+    "phaser": "^3.90.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vite": "^6.0.5"
+  }
+}
