@@ -5,9 +5,9 @@ export const WORLD = {
   playerRadius: 10
 } as const;
 
-export { lobbyMap } from "./maps/lobby";
-export { collidesCircle, getInteractZones, getMapSizePx, getTileLayer, isBlockedTile, isBlockedWorld, type InteractZone } from "./maps/helpers";
-export type { TiledMap, TiledObject, TiledLayer, TiledObjectLayer, TiledTileLayer } from "./maps/types";
+export { lobbyMap } from "./maps/lobby.js";
+export { collidesCircle, getInteractZones, getMapSizePx, getTileLayer, isBlockedTile, isBlockedWorld, type InteractZone } from "./maps/helpers.js";
+export type { TiledMap, TiledObject, TiledLayer, TiledObjectLayer, TiledTileLayer } from "./maps/types.js";
 
 export type Direction = "up" | "down" | "left" | "right";
 

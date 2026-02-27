@@ -1,1 +1,1 @@
-export { lobbyMap } from "./lobby.generated";
+export { lobbyMap } from "./lobby.generated.js";

@@ -12,7 +12,7 @@ const raw = fs.readFileSync(inputPath, "utf8");
 const parsed = JSON.parse(raw);
 validateMap(parsed);
 
-const source = `// AUTO-GENERATED FILE. Do not edit by hand.\n// Source: shared/maps/lobby.tmj\n\nimport type { TiledMap } from "./types";\n\nexport const lobbyMap: TiledMap = ${JSON.stringify(parsed, null, 2)};\n`;
+const source = `// AUTO-GENERATED FILE. Do not edit by hand.\n// Source: shared/maps/lobby.tmj\n\nimport type { TiledMap } from "./types.js";\n\nexport const lobbyMap: TiledMap = ${JSON.stringify(parsed, null, 2)};\n`;
 
 fs.writeFileSync(outputPath, source, "utf8");
 console.log(`Generated ${path.relative(repoRoot, outputPath)} from ${path.relative(repoRoot, inputPath)}`);

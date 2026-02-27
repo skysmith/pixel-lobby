@@ -1,4 +1,4 @@
-import type { TiledLayer, TiledMap, TiledObject, TiledTileLayer } from "./types";
+import type { TiledLayer, TiledMap, TiledObject, TiledTileLayer } from "./types.js";
 
 export type InteractZone = {
   id: number;
@@ -12,6 +12,11 @@ export type InteractZone = {
   kind: string;
   cta: string;
   url?: string;
+  secondaryCta?: string;
+  secondaryUrl?: string;
+  previewImage?: string;
+  previewUrl?: string;
+  previewText?: string;
 };
 
 export function getMapSizePx(map: TiledMap): { width: number; height: number } {
@@ -73,6 +78,11 @@ function toInteractZone(object: TiledObject): InteractZone {
   const kind = readObjectStringProperty(object, "kind") ?? object.type ?? "info";
   const cta = readObjectStringProperty(object, "cta") ?? "Open";
   const url = readObjectStringProperty(object, "url");
+  const secondaryCta = readObjectStringProperty(object, "secondaryCta");
+  const secondaryUrl = readObjectStringProperty(object, "secondaryUrl");
+  const previewImage = readObjectStringProperty(object, "previewImage");
+  const previewUrl = readObjectStringProperty(object, "previewUrl");
+  const previewText = readObjectStringProperty(object, "previewText");
 
   return {
     id: object.id,
@@ -85,7 +95,12 @@ function toInteractZone(object: TiledObject): InteractZone {
     message,
     kind,
     cta,
-    url
+    url,
+    secondaryCta,
+    secondaryUrl,
+    previewImage,
+    previewUrl,
+    previewText
   };
 }
 
