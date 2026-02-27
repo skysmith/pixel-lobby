@@ -4,7 +4,7 @@ A tiny Pokemon-ish online top-down lobby in the browser.
 
 ## MVP included
 
-- Join screen with name + avatar select
+- Auto-entry with generated guest name + avatar (no login gate)
 - Shared room via Colyseus
 - Authoritative movement + collision (server owns position)
 - Realtime player sync in Phaser
@@ -12,12 +12,13 @@ A tiny Pokemon-ish online top-down lobby in the browser.
 - Tiled-style shared map data (ground/collision/interact layers)
 - Camera follow + polished avatar sprites
 - Interact zone support (`E` near sign opens modal)
+- Terminal interact zones can open project URLs
 
 ## Stack
 
 - Client: Phaser + Vite + TypeScript
 - Server: Colyseus + Express + TypeScript
-- Maps: Tiled-ready structure (collision integration is next step)
+- Maps: Tiled `.tmj` source in `shared/maps/lobby.tmj` with generated TS module
 
 ## Run locally
 
@@ -30,6 +31,19 @@ npm run dev
 - Server: http://localhost:2567
 
 If join gets stuck on `Connecting...`, verify the server terminal shows `colyseus listening on http://localhost:2567`.
+
+## Editing maps in Tiled
+
+1. Edit `shared/maps/lobby.tmj` in Tiled
+2. Run:
+
+```bash
+npm run maps:sync
+```
+
+3. Restart dev/build
+
+`shared` build also auto-runs map generation via `prebuild`.
 
 ## Next milestones
 

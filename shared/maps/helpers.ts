@@ -9,6 +9,9 @@ export type InteractZone = {
   height: number;
   title: string;
   message: string;
+  kind: string;
+  cta: string;
+  url?: string;
 };
 
 export function getMapSizePx(map: TiledMap): { width: number; height: number } {
@@ -67,6 +70,9 @@ export function getInteractZones(map: TiledMap): InteractZone[] {
 function toInteractZone(object: TiledObject): InteractZone {
   const title = readObjectStringProperty(object, "title") ?? "Interact";
   const message = readObjectStringProperty(object, "message") ?? "No message configured.";
+  const kind = readObjectStringProperty(object, "kind") ?? object.type ?? "info";
+  const cta = readObjectStringProperty(object, "cta") ?? "Open";
+  const url = readObjectStringProperty(object, "url");
 
   return {
     id: object.id,
@@ -76,7 +82,10 @@ function toInteractZone(object: TiledObject): InteractZone {
     width: object.width,
     height: object.height,
     title,
-    message
+    message,
+    kind,
+    cta,
+    url
   };
 }
 

@@ -28,11 +28,24 @@ type PlayerView = {
   dir: Direction;
 };
 
+type NpcView = {
+  id: string;
+  visual: PlayerVisual;
+  nameLabel: Phaser.GameObjects.Text;
+  speech: Phaser.GameObjects.Text;
+  targetX: number;
+  targetY: number;
+  dir: Direction;
+  kind: string;
+  active: boolean;
+};
+
 type JoinPayload = { name: string; avatar: string };
 
 let joinPayload: JoinPayload | null = null;
 let gameStarted = false;
 let connectedRoom: Room | null = null;
+let currentVisitorName = "";
 
 const mapSize = getMapSizePx(lobbyMap);
 
@@ -43,16 +56,26 @@ const avatarColor: Record<string, number> = {
   bear: 0xc9a07f
 };
 
+const npcColor: Record<string, number> = {
+  guide: 0x8a7df2,
+  greeter: 0xf28da7,
+  missionary: 0xd6d6d6
+};
+
+const avatarPool = Object.keys(avatarColor);
+
 class LobbyScene extends Phaser.Scene {
   private room!: Room;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private players = new Map<string, PlayerView>();
+  private npcs = new Map<string, NpcView>();
   private inputSeq = 0;
   private localId = "";
   private interactZones: InteractZone[] = [];
   private interactHint!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private escapeKey!: Phaser.Input.Keyboard.Key;
+  private missionaryCooldownUntil = 0;
 
   constructor() {
     super("lobby");
@@ -70,7 +93,7 @@ class LobbyScene extends Phaser.Scene {
     this.localId = this.room.sessionId;
 
     this.cursors = this.input.keyboard!.createCursorKeys();
-    this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E);
+    this.interactKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.escapeKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     this.interactHint = this.add
@@ -83,6 +106,16 @@ class LobbyScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(40)
       .setVisible(false);
+
+    this.add
+      .text(14, 48, `Visitor: ${currentVisitorName}`, {
+        color: "#2f425f",
+        fontSize: "13px",
+        backgroundColor: "#ffffffcc",
+        padding: { x: 8, y: 5 }
+      })
+      .setScrollFactor(0)
+      .setDepth(40);
 
     this.room.state.players.onAdd((player: any, key: string) => {
       const color = avatarColor[player.avatar] ?? 0xcfd7e8;
@@ -148,6 +181,73 @@ class LobbyScene extends Phaser.Scene {
       this.players.delete(key);
     });
 
+    this.room.state.npcs.onAdd((npc: any, key: string) => {
+      const visual = createPlayerVisual(this, npc.x, npc.y, npcColor[npc.kind] ?? 0xc6a4f5);
+      visual.body.setSize(20, 20);
+      visual.body.setStrokeStyle(2, 0x49366f, 0.55);
+      const nameLabel = this.add
+        .text(npc.x, npc.y - 24, `${npc.name}`, {
+          color: npc.kind === "missionary" ? "#fffaf4" : "#fff7ff",
+          fontSize: "11px",
+          backgroundColor: npc.kind === "missionary" ? "#4a4a4ab8" : "#4f2d6e8a",
+          padding: { x: 4, y: 1 }
+        })
+        .setOrigin(0.5, 1)
+        .setDepth(12);
+      const speech = this.add
+        .text(npc.x, npc.y - 44, "", {
+          color: "#1c1c1c",
+          fontSize: "11px",
+          backgroundColor: "#f7f3ea",
+          padding: { x: 4, y: 2 },
+          wordWrap: { width: 220 }
+        })
+        .setOrigin(0.5, 1)
+        .setDepth(18)
+        .setVisible(false);
+
+      const view: NpcView = {
+        id: key,
+        visual,
+        nameLabel,
+        speech,
+        targetX: npc.x,
+        targetY: npc.y,
+        dir: npc.dir,
+        kind: String(npc.kind ?? ""),
+        active: Boolean(npc.active)
+      };
+      this.npcs.set(key, view);
+      applyFacing(view, npc.dir);
+      view.visual.root.setVisible(view.active);
+      view.nameLabel.setVisible(view.active);
+      view.speech.setVisible(false);
+
+      npc.onChange(() => {
+        view.targetX = npc.x;
+        view.targetY = npc.y;
+        view.dir = npc.dir;
+        view.active = Boolean(npc.active);
+        view.kind = String(npc.kind ?? view.kind);
+        view.visual.root.setVisible(view.active);
+        view.nameLabel.setVisible(view.active);
+        if (!view.active) {
+          view.speech.setVisible(false);
+        }
+      });
+    });
+
+    this.room.state.npcs.onRemove((_npc: any, key: string) => {
+      const view = this.npcs.get(key);
+      if (!view) {
+        return;
+      }
+      view.visual.root.destroy();
+      view.nameLabel.destroy();
+      view.speech.destroy();
+      this.npcs.delete(key);
+    });
+
     this.room.onMessage("chat", (msg: { id: string; msg: string }) => {
       this.appendChatMessage(msg.id === this.localId ? "you" : msg.id.slice(0, 6), msg.msg);
     });
@@ -165,8 +265,15 @@ class LobbyScene extends Phaser.Scene {
     const down = !!this.cursors.down?.isDown;
     const left = !!this.cursors.left?.isDown;
     const right = !!this.cursors.right?.isDown;
+    const typingInUi = isTypingInUi();
 
-    this.room.send("input", { up, down, left, right, seq: ++this.inputSeq });
+    this.room.send("input", {
+      up: typingInUi ? false : up,
+      down: typingInUi ? false : down,
+      left: typingInUi ? false : left,
+      right: typingInUi ? false : right,
+      seq: ++this.inputSeq
+    });
 
     for (const [id, view] of this.players) {
       const isLocal = id === this.localId;
@@ -183,20 +290,38 @@ class LobbyScene extends Phaser.Scene {
       view.visual.body.y = -2 + bob;
     }
 
+    for (const [id, view] of this.npcs) {
+      if (!view.active) {
+        continue;
+      }
+      view.visual.root.x = Phaser.Math.Linear(view.visual.root.x, view.targetX, 0.18);
+      view.visual.root.y = Phaser.Math.Linear(view.visual.root.y, view.targetY, 0.18);
+      view.nameLabel.setPosition(view.visual.root.x, view.visual.root.y - 24);
+      view.speech.setPosition(view.visual.root.x, view.visual.root.y - 44);
+      applyFacing(view, view.dir);
+
+      const bob = Math.sin((this.time.now + id.length * 35) / 260) * 0.45;
+      view.visual.body.y = -2 + bob;
+    }
+
     const localPlayer = this.players.get(this.localId);
     if (!localPlayer) {
       return;
     }
 
-    const nearestZone = findNearestZone(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y, 44);
-    if (nearestZone) {
-      this.interactHint.setText("Press E near sign");
-      this.interactHint.setVisible(true);
-      if (Phaser.Input.Keyboard.JustDown(this.interactKey)) {
-        openInteractModal(nearestZone.title, nearestZone.message);
+    const interactPressed = !typingInUi && Phaser.Input.Keyboard.JustDown(this.interactKey);
+    const missionaryNearby = this.handleMissionaryInteraction(localPlayer, interactPressed);
+    if (!missionaryNearby) {
+      const nearestZone = findNearestZone(this.interactZones, localPlayer.visual.root.x, localPlayer.visual.root.y, 44);
+      if (nearestZone) {
+        this.interactHint.setText(`Press Space: ${nearestZone.title}`);
+        this.interactHint.setVisible(true);
+        if (interactPressed) {
+          openInteractModal(nearestZone);
+        }
+      } else {
+        this.interactHint.setVisible(false);
       }
-    } else {
-      this.interactHint.setVisible(false);
     }
 
     if (Phaser.Input.Keyboard.JustDown(this.escapeKey)) {
@@ -219,17 +344,17 @@ class LobbyScene extends Phaser.Scene {
         const px = x * lobbyMap.tilewidth;
         const py = y * lobbyMap.tileheight;
 
-        gfx.fillStyle(groundTile === 2 ? 0xdce8ff : 0xeef4ff, 1);
+        gfx.fillStyle(colorForGroundTile(groundTile), 1);
         gfx.fillRect(px, py, lobbyMap.tilewidth, lobbyMap.tileheight);
 
         if (collisionTile !== 0) {
-          gfx.fillStyle(0x7f8ea8, 1);
-          gfx.fillRoundedRect(px + 2, py + 2, lobbyMap.tilewidth - 4, lobbyMap.tileheight - 4, 4);
+          gfx.fillStyle(collisionColorForGroundTile(groundTile), 0.95);
+          gfx.fillRoundedRect(px + 3, py + 3, lobbyMap.tilewidth - 6, lobbyMap.tileheight - 6, 5);
         }
       }
     }
 
-    gfx.lineStyle(1, 0xd5deed, 0.5);
+    gfx.lineStyle(1, 0xb9c6d8, 0.35);
     for (let x = 0; x <= mapSize.width; x += lobbyMap.tilewidth) {
       gfx.lineBetween(x, 0, x, mapSize.height);
     }
@@ -238,12 +363,13 @@ class LobbyScene extends Phaser.Scene {
     }
 
     for (const zone of this.interactZones) {
-      const marker = this.add.rectangle(zone.x + zone.width / 2, zone.y + zone.height / 2, zone.width, zone.height, 0xf8de79);
-      marker.setStrokeStyle(2, 0x7e5f00, 0.8);
+      const style = styleForZone(zone.kind);
+      const marker = this.add.rectangle(zone.x + zone.width / 2, zone.y + zone.height / 2, zone.width, zone.height, style.fill);
+      marker.setStrokeStyle(2, style.stroke, 0.85);
       marker.setDepth(6);
       this.add
-        .text(zone.x + zone.width / 2, zone.y + zone.height / 2, "!", {
-          color: "#6f5200",
+        .text(zone.x + zone.width / 2, zone.y + zone.height / 2, style.glyph, {
+          color: style.text,
           fontSize: "14px"
         })
         .setOrigin(0.5)
@@ -279,6 +405,61 @@ class LobbyScene extends Phaser.Scene {
     ul.appendChild(li);
     ul.scrollTop = ul.scrollHeight;
   }
+
+  private handleMissionaryInteraction(localPlayer: PlayerView, interactPressed: boolean): boolean {
+    const triggerDistance = 22;
+    let nearest: NpcView | null = null;
+    let best = Number.POSITIVE_INFINITY;
+
+    for (const npc of this.npcs.values()) {
+      if (!npc.active || npc.kind !== "missionary") {
+        continue;
+      }
+
+      const dx = npc.visual.root.x - localPlayer.visual.root.x;
+      const dy = npc.visual.root.y - localPlayer.visual.root.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 <= triggerDistance * triggerDistance && d2 < best) {
+        best = d2;
+        nearest = npc;
+      }
+    }
+
+    if (!nearest) {
+      return false;
+    }
+
+    const now = Date.now();
+    if (now < this.missionaryCooldownUntil) {
+      const seconds = Math.ceil((this.missionaryCooldownUntil - now) / 1000);
+      this.interactHint.setText(`Missionaries return in ${seconds}s`);
+      this.interactHint.setVisible(true);
+      return true;
+    }
+
+    this.interactHint.setText("Press Space: Talk to missionaries");
+    this.interactHint.setVisible(true);
+
+    if (!interactPressed) {
+      return true;
+    }
+
+    const phrase = "Do you have a moment to talk about the gospel?";
+    this.appendChatMessage("missionary", phrase);
+    const missionary = nearest;
+    missionary.speech.setText(phrase);
+    missionary.speech.setVisible(true);
+    this.time.delayedCall(4200, () => missionary.speech.setVisible(false));
+
+    this.missionaryCooldownUntil = now + 5 * 60 * 1000;
+    openExternalLinkModal(
+      "Missionary Visit",
+      phrase,
+      "Visit lds.org",
+      "https://www.churchofjesuschrist.org/"
+    );
+    return true;
+  }
 }
 
 function createPlayerVisual(scene: Phaser.Scene, x: number, y: number, color: number): PlayerVisual {
@@ -295,13 +476,56 @@ function createPlayerVisual(scene: Phaser.Scene, x: number, y: number, color: nu
   return { root, body, eyeLeft, eyeRight };
 }
 
-function applyFacing(view: PlayerView, dir: Direction) {
+function applyFacing(view: { visual: PlayerVisual }, dir: Direction) {
   const eyeY = dir === "up" ? -8 : dir === "down" ? -3 : -5;
   const offset = dir === "left" ? -6 : dir === "right" ? 6 : 4;
   view.visual.eyeLeft.x = -offset;
   view.visual.eyeRight.x = offset;
   view.visual.eyeLeft.y = eyeY;
   view.visual.eyeRight.y = eyeY;
+}
+
+function colorForGroundTile(tileId: number): number {
+  switch (tileId) {
+    case 2:
+      return 0xc99c6a; // dirt trail
+    case 3:
+      return 0x6aaed6; // river
+    case 4:
+      return 0x8e7d72; // canyon rock
+    case 5:
+      return 0x5b8358; // pines
+    case 6:
+      return 0xd8bc88; // viewpoint
+    default:
+      return 0xbfd2b1; // meadow
+  }
+}
+
+function collisionColorForGroundTile(tileId: number): number {
+  switch (tileId) {
+    case 3:
+      return 0x4f89ac;
+    case 5:
+      return 0x466b43;
+    case 4:
+      return 0x6f6158;
+    default:
+      return 0x7f8a98;
+  }
+}
+
+function styleForZone(kind: string): { fill: number; stroke: number; text: string; glyph: string } {
+  switch (kind) {
+    case "terminal":
+      return { fill: 0x7ce0f2, stroke: 0x1f6071, text: "#0b3d4b", glyph: ">" };
+    case "lemonade":
+      return { fill: 0xffe28a, stroke: 0xa16a00, text: "#6f5200", glyph: "L" };
+    case "hammock":
+      return { fill: 0xb6e3b8, stroke: 0x2d6b36, text: "#17431e", glyph: "H" };
+    default:
+      return { fill: 0xffd780, stroke: 0x7e5f00, text: "#6f5200", glyph: "!" };
+  }
 }
 
 function findNearestZone(zones: InteractZone[], x: number, y: number, maxDistance: number): InteractZone | null {
@@ -325,16 +549,13 @@ const joinForm = document.getElementById("joinForm") as HTMLFormElement;
 const joinButton = document.getElementById("joinButton") as HTMLButtonElement;
 const joinStatus = document.getElementById("joinStatus") as HTMLParagraphElement;
 
-joinForm.addEventListener("submit", async (ev) => {
-  ev.preventDefault();
-
+async function connectAndLaunch(payload: JoinPayload): Promise<boolean> {
   if (gameStarted) {
-    return;
+    return true;
   }
 
-  const name = (document.getElementById("name") as HTMLInputElement).value;
-  const avatar = (document.getElementById("avatar") as HTMLSelectElement).value;
-  joinPayload = { name, avatar };
+  joinPayload = payload;
+  currentVisitorName = payload.name;
   joinStatus.textContent = "Connecting...";
   joinButton.disabled = true;
 
@@ -364,6 +585,7 @@ joinForm.addEventListener("submit", async (ev) => {
 
     const join = document.getElementById("join") as HTMLElement;
     join.hidden = true;
+    return true;
   } catch (err) {
     connectedRoom = null;
     gameStarted = false;
@@ -371,8 +593,46 @@ joinForm.addEventListener("submit", async (ev) => {
     const details = formatJoinError(err);
     console.error("join failed", err);
     joinStatus.textContent = `Join failed: ${details}`;
+    const join = document.getElementById("join") as HTMLElement;
+    join.hidden = false;
+    return false;
   }
+}
+
+joinForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const name = (document.getElementById("name") as HTMLInputElement).value || generateGuestName();
+  const avatar = (document.getElementById("avatar") as HTMLSelectElement).value || pickRandomAvatar();
+  await connectAndLaunch({ name, avatar });
 });
+
+void connectAndLaunch({ name: generateGuestName(), avatar: pickRandomAvatar() });
+
+function generateGuestName(): string {
+  const names = [
+    "Shackleton",
+    "Earhart",
+    "Norgay",
+    "Hillary",
+    "Magellan",
+    "Cousteau",
+    "Hudson",
+    "Byrd",
+    "Aspen",
+    "Canyon",
+    "Juniper",
+    "River",
+    "Summit",
+    "Pine",
+    "Granite",
+    "Echo"
+  ];
+  return names[Math.floor(Math.random() * names.length)] ?? "Guest";
+}
+
+function pickRandomAvatar(): string {
+  return avatarPool[Math.floor(Math.random() * avatarPool.length)] ?? "cat";
+}
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -415,19 +675,47 @@ function formatJoinError(err: unknown): string {
   return "Unknown error";
 }
 
-function openInteractModal(title: string, message: string) {
+function openInteractModal(zone: InteractZone) {
+  openExternalLinkModal(zone.title, zone.message, zone.cta || "Open", zone.url);
+}
+
+function openExternalLinkModal(title: string, message: string, cta: string, url?: string) {
   const modal = document.getElementById("interactModal") as HTMLElement;
   const titleNode = document.getElementById("interactTitle") as HTMLElement;
   const bodyNode = document.getElementById("interactBody") as HTMLElement;
+  const openButton = document.getElementById("interactOpenLink") as HTMLButtonElement;
 
   titleNode.textContent = title;
   bodyNode.textContent = message;
+  if (url) {
+    openButton.hidden = false;
+    openButton.textContent = cta || "Open";
+    openButton.onclick = () => window.open(url, "_blank", "noopener,noreferrer");
+  } else {
+    openButton.hidden = true;
+    openButton.onclick = null;
+  }
   modal.hidden = false;
 }
 
 function closeInteractModal() {
   const modal = document.getElementById("interactModal") as HTMLElement;
   modal.hidden = true;
+}
+
+function isTypingInUi(): boolean {
+  const active = document.activeElement as HTMLElement | null;
+  if (!active) {
+    return false;
+  }
+
+  const tag = active.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    active.isContentEditable
+  );
 }
 
 const interactClose = document.getElementById("interactClose") as HTMLButtonElement;

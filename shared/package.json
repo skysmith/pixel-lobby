@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "prebuild": "node ../scripts/generate-map-module.mjs",
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {

@@ -133,6 +133,10 @@
         line-height: 1.4;
       }
 
+      #interactCard button {
+        margin-right: 8px;
+      }
+
       #messages {
         list-style: none;
         margin: 0;
@@ -164,9 +168,9 @@
   <body>
     <div id="app"></div>
 
-    <div id="join">
+    <div id="join" hidden>
       <form class="card" id="joinForm">
-        <h3 style="margin: 0">Enter Lobby</h3>
+        <h3 style="margin: 0">Rejoin Lobby</h3>
         <input id="name" maxlength="18" placeholder="Name" required value="Player" />
         <select id="avatar">
           <option value="cat">Cat</option>
@@ -191,6 +195,7 @@
       <div id="interactCard">
         <h3 id="interactTitle">Interact</h3>
         <p id="interactBody"></p>
+        <button id="interactOpenLink" type="button" hidden>Open</button>
         <button id="interactClose" type="button">Close</button>
       </div>
     </div>

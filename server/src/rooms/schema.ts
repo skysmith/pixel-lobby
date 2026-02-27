@@ -15,6 +15,19 @@ export class Player extends Schema {
   inputRight = false;
 }
 
+export class Npc extends Schema {
+  @type("string") name = "";
+  @type("string") kind = "guide";
+  @type("number") x = 0;
+  @type("number") y = 0;
+  @type("string") dir: Direction = "down";
+  @type("boolean") moving = false;
+  @type("boolean") active = true;
+
+  wanderMs = 0;
+}
+
 export class LobbyState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
+  @type({ map: Npc }) npcs = new MapSchema<Npc>();
 }
