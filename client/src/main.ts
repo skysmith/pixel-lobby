@@ -46,6 +46,7 @@ let joinPayload: JoinPayload | null = null;
 let gameStarted = false;
 let connectedRoom: Room | null = null;
 let currentVisitorName = "";
+const isMobileUa = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
 
 const mapSize = getMapSizePx(lobbyMap);
 
@@ -637,8 +638,9 @@ async function connectAndLaunch(payload: JoinPayload): Promise<boolean> {
     );
 
     gameStarted = true;
+    const rendererType = chooseRendererType();
     new Phaser.Game({
-      type: Phaser.AUTO,
+      type: rendererType,
       parent: "app",
       width: mapSize.width,
       height: mapSize.height,
@@ -700,6 +702,23 @@ function generateGuestName(): string {
 
 function pickRandomAvatar(): string {
   return avatarPool[Math.floor(Math.random() * avatarPool.length)] ?? "cat";
+}
+
+function chooseRendererType(): number {
+  if (!isMobileUa) {
+    return Phaser.AUTO;
+  }
+
+  const hasWebGlSupport = (() => {
+    try {
+      const canvas = document.createElement("canvas");
+      return Boolean(canvas.getContext("webgl") || canvas.getContext("experimental-webgl"));
+    } catch {
+      return false;
+    }
+  })();
+
+  return hasWebGlSupport ? Phaser.AUTO : Phaser.CANVAS;
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
