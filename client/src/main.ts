@@ -13,9 +13,9 @@ import {
 
 type PlayerVisual = {
   root: Phaser.GameObjects.Container;
-  body: Phaser.GameObjects.Rectangle;
-  eyeLeft: Phaser.GameObjects.Arc;
-  eyeRight: Phaser.GameObjects.Arc;
+  shadow: Phaser.GameObjects.Ellipse;
+  sprite: Phaser.GameObjects.Sprite;
+  lastFrameKey: string;
 };
 
 type PlayerView = {
@@ -215,7 +215,7 @@ class LobbyScene extends Phaser.Scene {
         dir: player.dir
       };
       this.players.set(key, view);
-      applyFacing(view, player.dir);
+      applyFacing(view, player.dir, false, this.time.now);
 
       if (key === this.localId) {
         this.cameras.main.startFollow(view.visual.root, true, 0.11, 0.11);
@@ -247,8 +247,6 @@ class LobbyScene extends Phaser.Scene {
 
     this.room.state.npcs.onAdd((npc: any, key: string) => {
       const visual = createPlayerVisual(this, npc.x, npc.y, npcColor[npc.kind] ?? 0xc6a4f5);
-      visual.body.setSize(20, 20);
-      visual.body.setStrokeStyle(2, 0x49366f, 0.55);
       const nameLabel = this.add
         .text(npc.x, npc.y - 24, `${npc.name}`, {
           color: npc.kind === "missionary" ? "#fffaf4" : "#fff7ff",
@@ -282,7 +280,7 @@ class LobbyScene extends Phaser.Scene {
         active: Boolean(npc.active)
       };
       this.npcs.set(key, view);
-      applyFacing(view, npc.dir);
+      applyFacing(view, npc.dir, false, this.time.now);
       view.visual.root.setVisible(view.active);
       view.nameLabel.setVisible(view.active);
       view.speech.setVisible(false);
@@ -373,10 +371,12 @@ class LobbyScene extends Phaser.Scene {
 
       view.nameLabel.setPosition(view.visual.root.x, view.visual.root.y - 26);
       view.bubble.setPosition(view.visual.root.x, view.visual.root.y - 44);
-      applyFacing(view, view.dir);
+      const playerMoving = Math.abs(view.targetX - view.visual.root.x) > 1.8 || Math.abs(view.targetY - view.visual.root.y) > 1.8;
+      applyFacing(view, view.dir, playerMoving, this.time.now);
 
       const bob = Math.sin((this.time.now + id.length * 60) / 190) * 0.6;
-      view.visual.body.y = -2 + bob;
+      view.visual.sprite.y = -3 + bob;
+      view.visual.shadow.scaleX = playerMoving ? 0.94 : 1;
     }
 
     for (const [id, view] of this.npcs) {
@@ -387,10 +387,12 @@ class LobbyScene extends Phaser.Scene {
       view.visual.root.y = Phaser.Math.Linear(view.visual.root.y, view.targetY, 0.18);
       view.nameLabel.setPosition(view.visual.root.x, view.visual.root.y - 24);
       view.speech.setPosition(view.visual.root.x, view.visual.root.y - 44);
-      applyFacing(view, view.dir);
+      const npcMoving = Math.abs(view.targetX - view.visual.root.x) > 1.4 || Math.abs(view.targetY - view.visual.root.y) > 1.4;
+      applyFacing(view, view.dir, npcMoving, this.time.now);
 
       const bob = Math.sin((this.time.now + id.length * 35) / 260) * 0.45;
-      view.visual.body.y = -2 + bob;
+      view.visual.sprite.y = -3 + bob;
+      view.visual.shadow.scaleX = npcMoving ? 0.94 : 1;
     }
 
     if (!localPlayer) {
@@ -548,26 +550,107 @@ class LobbyScene extends Phaser.Scene {
 }
 
 function createPlayerVisual(scene: Phaser.Scene, x: number, y: number, color: number): PlayerVisual {
-  const shadow = scene.add.ellipse(0, 8, 18, 7, 0x40506f, 0.2).setDepth(8);
-  const body = scene.add.rectangle(0, -2, 20, 24, color).setDepth(10);
-  body.setStrokeStyle(2, 0x304564, 0.5);
+  ensureAvatarTextures(scene);
+  const shadow = scene.add.ellipse(0, 9, 18, 7, 0x40506f, 0.22).setDepth(8);
+  const initialFrame = avatarFrameKey("down", 0);
+  const sprite = scene.add.sprite(0, -3, initialFrame).setScale(1.6).setDepth(10);
+  sprite.setTint(color);
 
-  const eyeLeft = scene.add.circle(-4, -5, 1.8, 0x1c2b43).setDepth(11);
-  const eyeRight = scene.add.circle(4, -5, 1.8, 0x1c2b43).setDepth(11);
-
-  const root = scene.add.container(x, y, [shadow, body, eyeLeft, eyeRight]);
+  const root = scene.add.container(x, y, [shadow, sprite]);
   root.setDepth(10);
 
-  return { root, body, eyeLeft, eyeRight };
+  return { root, shadow, sprite, lastFrameKey: initialFrame };
 }
 
-function applyFacing(view: { visual: PlayerVisual }, dir: Direction) {
-  const eyeY = dir === "up" ? -8 : dir === "down" ? -3 : -5;
-  const offset = dir === "left" ? -6 : dir === "right" ? 6 : 4;
-  view.visual.eyeLeft.x = -offset;
-  view.visual.eyeRight.x = offset;
-  view.visual.eyeLeft.y = eyeY;
-  view.visual.eyeRight.y = eyeY;
+function applyFacing(view: { visual: PlayerVisual }, dir: Direction, moving: boolean, timeMs: number) {
+  const walkFrame = moving ? (Math.floor(timeMs / 130) % 2) + 1 : 0;
+  const nextFrame = avatarFrameKey(dir, walkFrame);
+  if (view.visual.lastFrameKey !== nextFrame) {
+    view.visual.sprite.setTexture(nextFrame);
+    view.visual.lastFrameKey = nextFrame;
+  }
+}
+
+function avatarFrameKey(dir: Direction, frame: number): string {
+  return `avatar-${dir}-${frame}`;
+}
+
+function ensureAvatarTextures(scene: Phaser.Scene) {
+  if (scene.textures.exists(avatarFrameKey("down", 0))) {
+    return;
+  }
+
+  const dirs: Direction[] = ["down", "left", "right", "up"];
+  for (const dir of dirs) {
+    for (let frame = 0; frame < 3; frame += 1) {
+      const key = avatarFrameKey(dir, frame);
+      const data = buildAvatarPixelData(dir, frame);
+      const palette: Record<string, string> = {
+        ".": "rgba(0,0,0,0)",
+        o: "#0f1727",
+        b: "#ffffff",
+        s: "#d5e3ff",
+        h: "#fef3d8"
+      };
+      scene.textures.generate(key, {
+        data,
+        pixelWidth: 1,
+        palette: palette as any
+      });
+    }
+  }
+}
+
+function buildAvatarPixelData(dir: Direction, frame: number): string[] {
+  const rows = Array.from({ length: 16 }, () => "................".split(""));
+  const paint = (x: number, y: number, c: string) => {
+    if (x >= 0 && x < 16 && y >= 0 && y < 16) {
+      rows[y][x] = c;
+    }
+  };
+  const rect = (x: number, y: number, w: number, h: number, c: string) => {
+    for (let yy = y; yy < y + h; yy += 1) {
+      for (let xx = x; xx < x + w; xx += 1) {
+        paint(xx, yy, c);
+      }
+    }
+  };
+
+  rect(4, 2, 8, 5, "b"); // head
+  rect(5, 7, 6, 5, "b"); // torso
+  rect(5, 12, 2, 3, "b");
+  rect(9, 12, 2, 3, "b");
+
+  if (dir === "up") {
+    rect(6, 4, 4, 1, "s");
+    rect(4, 2, 1, 2, "h");
+    rect(11, 2, 1, 2, "h");
+  } else if (dir === "left") {
+    rect(5, 4, 2, 1, "o");
+    rect(4, 2, 1, 2, "h");
+    rect(11, 2, 1, 2, "h");
+  } else if (dir === "right") {
+    rect(9, 4, 2, 1, "o");
+    rect(4, 2, 1, 2, "h");
+    rect(11, 2, 1, 2, "h");
+  } else {
+    rect(5, 4, 2, 1, "o");
+    rect(9, 4, 2, 1, "o");
+    rect(4, 2, 1, 2, "h");
+    rect(11, 2, 1, 2, "h");
+  }
+
+  if (frame === 1) {
+    rect(5, 12, 2, 3, ".");
+    rect(5, 11, 2, 3, "b");
+    rect(9, 12, 2, 3, "b");
+  } else if (frame === 2) {
+    rect(9, 12, 2, 3, ".");
+    rect(9, 11, 2, 3, "b");
+    rect(5, 12, 2, 3, "b");
+  }
+
+  return rows.map((row) => row.join(""));
 }
 
 function colorForGroundTile(tileId: number): number {
