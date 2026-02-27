@@ -8,9 +8,12 @@
     "shared"
   ],
   "scripts": {
-    "dev": "npm run build -w shared && npm run dev -w server & npm run dev -w client",
+    "dev": "npm run build -w shared && concurrently -k \"npm run dev -w server\" \"npm run dev -w client\"",
     "dev:client": "npm run dev -w client",
     "dev:server": "npm run build -w shared && npm run dev -w server",
     "build": "npm run build -w shared && npm run build -w server && npm run build -w client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
   }
 }

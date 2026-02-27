@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "declaration": true,
     "outDir": "dist",
     "strict": true,
     "skipLibCheck": true
   },
-  "include": ["index.ts"]
+  "include": ["index.ts", "maps/**/*.ts"]
 }

@@ -5,13 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pixel Lobby</title>
     <style>
+      :root {
+        --bg: #f2f6fb;
+        --panel: #ffffff;
+        --panel-border: #cfd9e8;
+        --text: #1f2a3d;
+        --muted: #5a6b86;
+        --button: #3d78f2;
+        --button-hover: #2f67dc;
+        --button-text: #ffffff;
+      }
+
       html,
       body,
       #app {
         margin: 0;
         height: 100%;
-        background: #202634;
-        color: #e8ecf4;
+        background: var(--bg);
+        color: var(--text);
         font-family: monospace;
       }
 
@@ -20,13 +31,17 @@
         inset: 0;
         display: grid;
         place-items: center;
-        background: rgba(10, 14, 20, 0.75);
+        background: rgba(242, 246, 251, 0.9);
         z-index: 5;
       }
 
+      #join[hidden] {
+        display: none !important;
+      }
+
       #join .card {
-        background: #111722;
-        border: 1px solid #2f3b55;
+        background: var(--panel);
+        border: 1px solid var(--panel-border);
         border-radius: 12px;
         width: min(92vw, 360px);
         padding: 18px;
@@ -39,9 +54,33 @@
       button {
         padding: 8px;
         border-radius: 8px;
-        border: 1px solid #394968;
-        background: #0f1522;
-        color: #ecf0f8;
+        border: 1px solid var(--panel-border);
+        background: #f8fbff;
+        color: var(--text);
+      }
+
+      button {
+        border-color: #2f67dc;
+        background: var(--button);
+        color: var(--button-text);
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: var(--button-hover);
+      }
+
+      button:disabled {
+        opacity: 0.7;
+        cursor: wait;
+      }
+
+      #joinStatus {
+        min-height: 1.2em;
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
       }
 
       #chat {
@@ -50,12 +89,48 @@
         top: 10px;
         width: 300px;
         max-height: 72vh;
-        background: rgba(7, 10, 14, 0.85);
-        border: 1px solid #2f3b55;
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid var(--panel-border);
         border-radius: 10px;
         display: grid;
         grid-template-rows: 1fr auto;
         z-index: 4;
+      }
+
+      #chat[hidden] {
+        display: none !important;
+      }
+
+      #interactModal {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(20, 28, 42, 0.38);
+        z-index: 8;
+      }
+
+      #interactModal[hidden] {
+        display: none !important;
+      }
+
+      #interactCard {
+        width: min(92vw, 420px);
+        background: #ffffff;
+        border: 1px solid var(--panel-border);
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 12px 38px rgba(31, 42, 61, 0.22);
+      }
+
+      #interactTitle {
+        margin: 0 0 8px 0;
+      }
+
+      #interactBody {
+        margin: 0 0 14px 0;
+        color: var(--muted);
+        line-height: 1.4;
       }
 
       #messages {
@@ -99,7 +174,8 @@
           <option value="frog">Frog</option>
           <option value="bear">Bear</option>
         </select>
-        <button type="submit">Join</button>
+        <button id="joinButton" type="submit">Join</button>
+        <p id="joinStatus"></p>
       </form>
     </div>
 
@@ -110,6 +186,14 @@
         <button type="submit">Send</button>
       </form>
     </aside>
+
+    <div id="interactModal" hidden>
+      <div id="interactCard">
+        <h3 id="interactTitle">Interact</h3>
+        <p id="interactBody"></p>
+        <button id="interactClose" type="button">Close</button>
+      </div>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

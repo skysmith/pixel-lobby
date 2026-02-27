@@ -1,5 +1,5 @@
 import { Room, Client } from "colyseus";
-import { PATCH_RATE_MS, ROOM_NAME, TICK_RATE_MS, WORLD, type InputPayload } from "@pixel-lobby/shared";
+import { PATCH_RATE_MS, TICK_RATE_MS, WORLD, collidesCircle, getMapSizePx, lobbyMap, type InputPayload } from "@pixel-lobby/shared";
 import { LobbyState, Player } from "./schema";
 
 const MAX_INPUTS_PER_SEC = 40;
@@ -7,12 +7,12 @@ const MAX_CHAT_PER_10S = 8;
 
 export class LobbyRoom extends Room<LobbyState> {
   maxClients = 40;
+  private readonly mapSize = getMapSizePx(lobbyMap);
 
   private readonly inputBuckets = new Map<string, { count: number; windowStart: number }>();
   private readonly chatBuckets = new Map<string, { count: number; windowStart: number }>();
 
   onCreate() {
-    this.roomName = ROOM_NAME;
     this.setState(new LobbyState());
     this.setPatchRate(PATCH_RATE_MS);
 
@@ -71,8 +71,9 @@ export class LobbyRoom extends Room<LobbyState> {
     const player = new Player();
     player.name = sanitizeName(options?.name);
     player.avatar = sanitizeAvatar(options?.avatar);
-    player.x = 80 + Math.random() * (WORLD.width - 160);
-    player.y = 80 + Math.random() * (WORLD.height - 160);
+    const spawn = findSpawnPosition();
+    player.x = spawn.x;
+    player.y = spawn.y;
     this.state.players.set(client.sessionId, player);
   }
 
@@ -109,8 +110,20 @@ export class LobbyRoom extends Room<LobbyState> {
       dy *= inv;
     }
 
-    player.x = clamp(player.x + dx * WORLD.playerSpeed * dt, 16, WORLD.width - 16);
-    player.y = clamp(player.y + dy * WORLD.playerSpeed * dt, 16, WORLD.height - 16);
+    const speed = WORLD.playerSpeed * dt;
+    const nextX = player.x + dx * speed;
+    const nextY = player.y + dy * speed;
+    const radius = WORLD.playerRadius;
+
+    const candidateX = clamp(nextX, radius, this.mapSize.width - radius);
+    if (!collidesCircle(lobbyMap, candidateX, player.y, radius)) {
+      player.x = candidateX;
+    }
+
+    const candidateY = clamp(nextY, radius, this.mapSize.height - radius);
+    if (!collidesCircle(lobbyMap, player.x, candidateY, radius)) {
+      player.y = candidateY;
+    }
   }
 
   private consumeInputToken(sessionId: string): boolean {
@@ -150,4 +163,19 @@ function sanitizeName(name: string | undefined): string {
 function sanitizeAvatar(avatar: string | undefined): string {
   const allowed = new Set(["cat", "fox", "frog", "bear"]);
   return allowed.has(String(avatar)) ? String(avatar) : "cat";
+}
+
+function findSpawnPosition(): { x: number; y: number } {
+  const size = getMapSizePx(lobbyMap);
+  const radius = WORLD.playerRadius;
+
+  for (let i = 0; i < 40; i += 1) {
+    const x = radius + Math.random() * (size.width - radius * 2);
+    const y = radius + Math.random() * (size.height - radius * 2);
+    if (!collidesCircle(lobbyMap, x, y, radius)) {
+      return { x, y };
+    }
+  }
+
+  return { x: 64, y: 64 };
 }

@@ -1,11 +1,13 @@
 export const ROOM_NAME = "lobby";
 
 export const WORLD = {
-  width: 32 * 30,
-  height: 32 * 20,
-  tileSize: 32,
-  playerSpeed: 140
+  playerSpeed: 140,
+  playerRadius: 10
 } as const;
+
+export { lobbyMap } from "./maps/lobby";
+export { collidesCircle, getInteractZones, getMapSizePx, getTileLayer, isBlockedTile, isBlockedWorld, type InteractZone } from "./maps/helpers";
+export type { TiledMap, TiledObject, TiledLayer, TiledObjectLayer, TiledTileLayer } from "./maps/types";
 
 export type Direction = "up" | "down" | "left" | "right";
 
