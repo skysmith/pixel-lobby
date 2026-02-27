@@ -46,6 +46,7 @@ let joinPayload: JoinPayload | null = null;
 let gameStarted = false;
 let connectedRoom: Room | null = null;
 const isMobileUa = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+const defaultCameraZoom = isMobileUa ? 1.8 : 1.15;
 
 const mapSize = getMapSizePx(lobbyMap);
 
@@ -391,7 +392,7 @@ class LobbyScene extends Phaser.Scene {
     }
 
     this.cameras.main.setBounds(0, 0, mapSize.width, mapSize.height);
-    this.cameras.main.setZoom(1.15);
+    this.cameras.main.setZoom(defaultCameraZoom);
     this.cameras.main.roundPixels = true;
   }
 
