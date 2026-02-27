@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm --prefix .. run build -w @pixel-lobby/shared",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview"
   },
