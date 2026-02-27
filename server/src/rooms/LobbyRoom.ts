@@ -8,7 +8,7 @@ const NPC_SPEED = 72;
 const NPC_COLLISION_RADIUS = 10;
 const MISSIONARY_FIRST_WAVE_DELAY_MS = 60_000;
 const MISSIONARY_WAVE_DURATION_MS = 120_000;
-const MISSIONARY_WAVE_COOLDOWN_MS = 600_000;
+const MISSIONARY_WAVE_COOLDOWN_MS = 300_000;
 
 export class LobbyRoom extends Room<LobbyState> {
   maxClients = 40;

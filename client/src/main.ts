@@ -75,7 +75,6 @@ class LobbyScene extends Phaser.Scene {
   private interactHint!: Phaser.GameObjects.Text;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private escapeKey!: Phaser.Input.Keyboard.Key;
-  private missionaryCooldownUntil = 0;
 
   constructor() {
     super("lobby");
@@ -346,6 +345,7 @@ class LobbyScene extends Phaser.Scene {
 
         gfx.fillStyle(colorForGroundTile(groundTile), 1);
         gfx.fillRect(px, py, lobbyMap.tilewidth, lobbyMap.tileheight);
+        drawGroundDetail(gfx, groundTile, px, py, lobbyMap.tilewidth, lobbyMap.tileheight, x, y);
 
         if (collisionTile !== 0) {
           gfx.fillStyle(collisionColorForGroundTile(groundTile), 0.95);
@@ -363,17 +363,7 @@ class LobbyScene extends Phaser.Scene {
     }
 
     for (const zone of this.interactZones) {
-      const style = styleForZone(zone.kind);
-      const marker = this.add.rectangle(zone.x + zone.width / 2, zone.y + zone.height / 2, zone.width, zone.height, style.fill);
-      marker.setStrokeStyle(2, style.stroke, 0.85);
-      marker.setDepth(6);
-      this.add
-        .text(zone.x + zone.width / 2, zone.y + zone.height / 2, style.glyph, {
-          color: style.text,
-          fontSize: "14px"
-        })
-        .setOrigin(0.5)
-        .setDepth(7);
+      drawZoneSprite(this, zone);
     }
 
     this.cameras.main.setBounds(0, 0, mapSize.width, mapSize.height);
@@ -429,14 +419,6 @@ class LobbyScene extends Phaser.Scene {
       return false;
     }
 
-    const now = Date.now();
-    if (now < this.missionaryCooldownUntil) {
-      const seconds = Math.ceil((this.missionaryCooldownUntil - now) / 1000);
-      this.interactHint.setText(`Missionaries return in ${seconds}s`);
-      this.interactHint.setVisible(true);
-      return true;
-    }
-
     this.interactHint.setText("Press Space: Talk to missionaries");
     this.interactHint.setVisible(true);
 
@@ -451,7 +433,6 @@ class LobbyScene extends Phaser.Scene {
     missionary.speech.setVisible(true);
     this.time.delayedCall(4200, () => missionary.speech.setVisible(false));
 
-    this.missionaryCooldownUntil = now + 5 * 60 * 1000;
     openExternalLinkModal(
       "Missionary Visit",
       phrase,
@@ -515,17 +496,104 @@ function collisionColorForGroundTile(tileId: number): number {
   }
 }
 
-function styleForZone(kind: string): { fill: number; stroke: number; text: string; glyph: string } {
-  switch (kind) {
-    case "terminal":
-      return { fill: 0x7ce0f2, stroke: 0x1f6071, text: "#0b3d4b", glyph: ">" };
-    case "lemonade":
-      return { fill: 0xffe28a, stroke: 0xa16a00, text: "#6f5200", glyph: "L" };
-    case "hammock":
-      return { fill: 0xb6e3b8, stroke: 0x2d6b36, text: "#17431e", glyph: "H" };
-    default:
-      return { fill: 0xffd780, stroke: 0x7e5f00, text: "#6f5200", glyph: "!" };
+function drawGroundDetail(
+  gfx: Phaser.GameObjects.Graphics,
+  tileId: number,
+  px: number,
+  py: number,
+  w: number,
+  h: number,
+  tx: number,
+  ty: number
+) {
+  if (tileId === 2) {
+    gfx.fillStyle(0xb68658, 0.35);
+    gfx.fillRect(px + 5, py + 12, w - 10, 8);
+  } else if (tileId === 3) {
+    gfx.fillStyle(0x90c7e6, 0.35);
+    gfx.fillRect(px + 3, py + 6, w - 6, 3);
+    gfx.fillRect(px + 6, py + 18, w - 12, 2);
+  } else if (tileId === 4) {
+    const tone = (tx + ty) % 2 === 0 ? 0x7a6b63 : 0x86766d;
+    gfx.fillStyle(tone, 0.28);
+    gfx.fillCircle(px + 9, py + 10, 3);
+    gfx.fillCircle(px + 22, py + 19, 2.5);
+  } else if (tileId === 1 && (tx + ty) % 4 === 0) {
+    gfx.fillStyle(0xa9c39b, 0.26);
+    gfx.fillCircle(px + 11, py + 11, 2.4);
   }
+}
+
+function drawZoneSprite(scene: Phaser.Scene, zone: InteractZone) {
+  const cx = zone.x + zone.width / 2;
+  const cy = zone.y + zone.height / 2;
+
+  const g = scene.add.graphics();
+  g.setDepth(7);
+
+  if (zone.kind === "lemonade") {
+    // Lemonade stand (awning + counter)
+    g.fillStyle(0xfde48a, 1);
+    g.fillRect(cx - 20, cy - 18, 40, 6);
+    g.fillStyle(0xef8f6a, 1);
+    g.fillRect(cx - 20, cy - 12, 40, 4);
+    g.fillStyle(0xa36a3c, 1);
+    g.fillRect(cx - 16, cy - 8, 32, 16);
+    g.fillStyle(0x6d4626, 1);
+    g.fillRect(cx - 18, cy + 8, 36, 4);
+    scene.add.text(cx, cy - 2, "LEMON", { color: "#fff9e7", fontSize: "8px" }).setOrigin(0.5).setDepth(8);
+  } else if (zone.kind === "arcade") {
+    // Arcade cabinet cluster
+    g.fillStyle(0x2f3c8c, 1);
+    g.fillRect(cx - 20, cy - 16, 14, 30);
+    g.fillRect(cx - 2, cy - 20, 16, 34);
+    g.fillRect(cx + 16, cy - 14, 12, 28);
+    g.fillStyle(0x7de7ff, 1);
+    g.fillRect(cx - 17, cy - 12, 8, 10);
+    g.fillRect(cx + 1, cy - 15, 10, 11);
+    g.fillRect(cx + 18, cy - 10, 6, 9);
+    g.fillStyle(0xf26ca7, 1);
+    g.fillCircle(cx - 12, cy + 4, 2);
+    g.fillCircle(cx + 6, cy + 2, 2);
+    g.fillCircle(cx + 21, cy + 6, 1.8);
+    scene.add.text(cx, cy - 24, "ARCADE", { color: "#f4fbff", fontSize: "8px" }).setOrigin(0.5).setDepth(8);
+  } else if (zone.kind === "shop" || zone.kind === "realty") {
+    // Shop hut (roof + walls + door)
+    const roof = zone.kind === "realty" ? 0x5f6f86 : 0x7c5440;
+    const wall = zone.kind === "realty" ? 0xb9cce6 : 0xb68868;
+    const door = zone.kind === "realty" ? 0x42556d : 0x5f3c2a;
+    g.fillStyle(roof, 1);
+    g.fillRect(cx - 24, cy - 16, 48, 8);
+    g.fillStyle(wall, 1);
+    g.fillRect(cx - 20, cy - 8, 40, 24);
+    g.fillStyle(door, 1);
+    g.fillRect(cx - 6, cy + 2, 12, 14);
+    g.fillStyle(0x9ed8ff, 1);
+    g.fillRect(cx - 16, cy - 2, 8, 6);
+    g.fillRect(cx + 8, cy - 2, 8, 6);
+    scene
+      .add.text(cx, cy - 21, zone.kind === "realty" ? "HOME" : "GEAR", {
+        color: "#f7f7f7",
+        fontSize: "8px"
+      })
+      .setOrigin(0.5)
+      .setDepth(8);
+  } else {
+    // Default info marker
+    g.fillStyle(0xfadf8f, 1);
+    g.fillRoundedRect(cx - 10, cy - 12, 20, 24, 4);
+    scene.add.text(cx, cy - 1, "i", { color: "#6f5200", fontSize: "12px" }).setOrigin(0.5).setDepth(8);
+  }
+
+  scene.add
+    .text(cx, zone.y + zone.height + 8, zone.title, {
+      color: "#23384f",
+      fontSize: "11px",
+      backgroundColor: "#ffffffdd",
+      padding: { x: 4, y: 2 }
+    })
+    .setOrigin(0.5, 0)
+    .setDepth(9);
 }
 
 function findNearestZone(zones: InteractZone[], x: number, y: number, maxDistance: number): InteractZone | null {
@@ -676,17 +744,64 @@ function formatJoinError(err: unknown): string {
 }
 
 function openInteractModal(zone: InteractZone) {
-  openExternalLinkModal(zone.title, zone.message, zone.cta || "Open", zone.url);
+  openExternalLinkModal(
+    zone.title,
+    zone.message,
+    zone.cta || "Open",
+    zone.url,
+    zone.secondaryCta,
+    zone.secondaryUrl,
+    zone.previewImage,
+    zone.previewUrl,
+    zone.previewText
+  );
 }
 
-function openExternalLinkModal(title: string, message: string, cta: string, url?: string) {
+function openExternalLinkModal(
+  title: string,
+  message: string,
+  cta: string,
+  url?: string,
+  secondaryCta?: string,
+  secondaryUrl?: string,
+  previewImage?: string,
+  previewUrl?: string,
+  previewText?: string
+) {
   const modal = document.getElementById("interactModal") as HTMLElement;
   const titleNode = document.getElementById("interactTitle") as HTMLElement;
   const bodyNode = document.getElementById("interactBody") as HTMLElement;
   const openButton = document.getElementById("interactOpenLink") as HTMLButtonElement;
+  const openButton2 = document.getElementById("interactOpenLink2") as HTMLButtonElement;
+  const previewCard = document.getElementById("interactPreview") as HTMLElement;
+  const previewImageNode = document.getElementById("interactPreviewImage") as HTMLImageElement;
+  const previewUrlNode = document.getElementById("interactPreviewUrl") as HTMLAnchorElement;
+  const previewTextNode = document.getElementById("interactPreviewText") as HTMLParagraphElement;
 
   titleNode.textContent = title;
   bodyNode.textContent = message;
+
+  const resolvedPreviewUrl = previewUrl ?? url;
+  const hasPreview = Boolean(previewImage || resolvedPreviewUrl || previewText);
+  previewCard.hidden = !hasPreview;
+  if (hasPreview) {
+    previewImageNode.hidden = !previewImage;
+    previewImageNode.src = previewImage ?? "";
+
+    if (resolvedPreviewUrl) {
+      previewUrlNode.hidden = false;
+      previewUrlNode.href = resolvedPreviewUrl;
+      previewUrlNode.textContent = resolvedPreviewUrl;
+    } else {
+      previewUrlNode.hidden = true;
+      previewUrlNode.href = "#";
+      previewUrlNode.textContent = "";
+    }
+
+    previewTextNode.textContent = previewText ?? "";
+    previewTextNode.hidden = !previewText;
+  }
+
   if (url) {
     openButton.hidden = false;
     openButton.textContent = cta || "Open";
@@ -694,6 +809,15 @@ function openExternalLinkModal(title: string, message: string, cta: string, url?
   } else {
     openButton.hidden = true;
     openButton.onclick = null;
+  }
+
+  if (secondaryUrl) {
+    openButton2.hidden = false;
+    openButton2.textContent = secondaryCta || "Open";
+    openButton2.onclick = () => window.open(secondaryUrl, "_blank", "noopener,noreferrer");
+  } else {
+    openButton2.hidden = true;
+    openButton2.onclick = null;
   }
   modal.hidden = false;
 }

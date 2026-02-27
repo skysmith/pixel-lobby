@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="220" viewBox="0 0 640 220">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e6eef8"/>
+      <stop offset="100%" stop-color="#bed2ea"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="220" fill="url(#g)"/>
+  <rect x="120" y="95" width="120" height="80" fill="#7f97b8"/>
+  <polygon points="110,95 180,55 250,95" fill="#5f7899"/>
+  <rect x="400" y="95" width="120" height="80" fill="#7f97b8"/>
+  <polygon points="390,95 460,55 530,95" fill="#5f7899"/>
+  <text x="50%" y="48%" text-anchor="middle" font-size="40" fill="#2a4462" font-family="monospace">Real Estate</text>
+  <text x="50%" y="68%" text-anchor="middle" font-size="19" fill="#305376" font-family="monospace">Buy / Sell Homes with Skyler Smith</text>
+</svg>

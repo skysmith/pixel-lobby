@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="220" viewBox="0 0 640 220">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d7e8f7"/>
+      <stop offset="100%" stop-color="#9bb7d1"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="220" fill="url(#g)"/>
+  <path d="M70 170 L140 90 L210 170 Z" fill="#4a647c"/>
+  <path d="M150 170 L240 60 L330 170 Z" fill="#3a5369"/>
+  <path d="M280 170 L390 80 L500 170 Z" fill="#4a647c"/>
+  <text x="50%" y="50%" text-anchor="middle" font-size="42" fill="#1d3448" font-family="monospace">Bridger Gear</text>
+  <text x="50%" y="70%" text-anchor="middle" font-size="18" fill="#24465f" font-family="monospace">Outdoor-ready apparel &amp; goods</text>
+</svg>
