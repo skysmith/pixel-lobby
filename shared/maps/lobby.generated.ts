@@ -1251,7 +1251,7 @@ export const lobbyMap: TiledMap = {
             {
               "name": "message",
               "type": "string",
-              "value": "Hi, I’m Skyler—this canyon is my site. Walk to each sign and press Space to open projects, partners, or tools. I build digital experiences, playful side quests, and real estate tech from Logan, Utah."
+              "value": "Welcome to Skyler's project trail. This lobby is a guided map of active work: product experiments, brand sites, and real-estate tools. Walk the loop to each stop to open links and get context on what each project does and who it is for."
             },
             {
               "name": "cta",
@@ -1282,7 +1282,7 @@ export const lobbyMap: TiledMap = {
             {
               "name": "message",
               "type": "string",
-              "value": "Clementine Kids, Baby & Kids Bedding Products."
+              "value": "Clementine Kids is a playful e-commerce brand focused on baby and kids bedding. This stop points to the live storefront so you can see how the brand voice, product storytelling, and shopping flow come together in one polished experience."
             },
             {
               "name": "cta",
@@ -1333,7 +1333,7 @@ export const lobbyMap: TiledMap = {
             {
               "name": "message",
               "type": "string",
-              "value": "A chill hammock-side shop featuring durable gear inspired by mountain life."
+              "value": "Bridger Gear is an outdoor-focused shop concept inspired by mountain life. This project emphasizes durable product positioning, clear merchandising, and a practical shopping path for people looking for high-utility gear."
             },
             {
               "name": "cta",
@@ -1384,7 +1384,7 @@ export const lobbyMap: TiledMap = {
             {
               "name": "message",
               "type": "string",
-              "value": "Buy or sell homes with Skyler Smith at Dwell Realty Group."
+              "value": "Dwell Realty Group is the real-estate hub for buying and selling in Northern Utah. The linked site is designed to make listings, local market context, and direct agent contact easy to understand for both first-time and repeat clients."
             },
             {
               "name": "cta",

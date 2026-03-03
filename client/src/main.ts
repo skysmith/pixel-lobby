@@ -15,6 +15,7 @@ type PlayerVisual = {
   root: Phaser.GameObjects.Container;
   shadow: Phaser.GameObjects.Ellipse;
   sprite: Phaser.GameObjects.Sprite;
+  variant: "default" | "missionary";
   lastFrameKey: string;
 };
 
@@ -184,7 +185,7 @@ class LobbyScene extends Phaser.Scene {
 
     this.room.state.players.onAdd((player: any, key: string) => {
       const color = avatarColor[player.avatar] ?? 0xcfd7e8;
-      const visual = createPlayerVisual(this, player.x, player.y, color);
+      const visual = createPlayerVisual(this, player.x, player.y, color, "default");
       const nameLabel = this.add
         .text(player.x, player.y - 26, player.name, {
           color: "#f9fbff",
@@ -247,7 +248,8 @@ class LobbyScene extends Phaser.Scene {
     });
 
     this.room.state.npcs.onAdd((npc: any, key: string) => {
-      const visual = createPlayerVisual(this, npc.x, npc.y, npcColor[npc.kind] ?? 0xc6a4f5);
+      const variant = npc.kind === "missionary" ? "missionary" : "default";
+      const visual = createPlayerVisual(this, npc.x, npc.y, npcColor[npc.kind] ?? 0xc6a4f5, variant);
       const nameLabel = this.add
         .text(npc.x, npc.y - 24, `${npc.name}`, {
           color: npc.kind === "missionary" ? "#fffaf4" : "#fff7ff",
@@ -552,59 +554,73 @@ class LobbyScene extends Phaser.Scene {
   }
 }
 
-function createPlayerVisual(scene: Phaser.Scene, x: number, y: number, color: number): PlayerVisual {
+function createPlayerVisual(
+  scene: Phaser.Scene,
+  x: number,
+  y: number,
+  color: number,
+  variant: "default" | "missionary"
+): PlayerVisual {
   ensureAvatarTextures(scene);
   const shadow = scene.add.ellipse(0, 9, 18, 7, 0x40506f, 0.22).setDepth(8);
-  const initialFrame = avatarFrameKey("down", 0);
+  const initialFrame = avatarFrameKey(variant, "down", 0);
   const sprite = scene.add.sprite(0, -3, initialFrame).setScale(1.6).setDepth(10);
-  sprite.setTint(color);
+  if (variant === "default") {
+    sprite.setTint(color);
+  } else {
+    sprite.clearTint();
+  }
 
   const root = scene.add.container(x, y, [shadow, sprite]);
   root.setDepth(10);
 
-  return { root, shadow, sprite, lastFrameKey: initialFrame };
+  return { root, shadow, sprite, variant, lastFrameKey: initialFrame };
 }
 
 function applyFacing(view: { visual: PlayerVisual }, dir: Direction, moving: boolean, timeMs: number) {
   const walkFrame = moving ? (Math.floor(timeMs / 130) % 2) + 1 : 0;
-  const nextFrame = avatarFrameKey(dir, walkFrame);
+  const nextFrame = avatarFrameKey(view.visual.variant, dir, walkFrame);
   if (view.visual.lastFrameKey !== nextFrame) {
     view.visual.sprite.setTexture(nextFrame);
     view.visual.lastFrameKey = nextFrame;
   }
 }
 
-function avatarFrameKey(dir: Direction, frame: number): string {
-  return `avatar-${dir}-${frame}`;
+function avatarFrameKey(variant: "default" | "missionary", dir: Direction, frame: number): string {
+  return `avatar-${variant}-${dir}-${frame}`;
 }
 
 function ensureAvatarTextures(scene: Phaser.Scene) {
-  if (scene.textures.exists(avatarFrameKey("down", 0))) {
+  if (scene.textures.exists(avatarFrameKey("default", "down", 0))) {
     return;
   }
 
+  const variants: Array<"default" | "missionary"> = ["default", "missionary"];
   const dirs: Direction[] = ["down", "left", "right", "up"];
-  for (const dir of dirs) {
-    for (let frame = 0; frame < 3; frame += 1) {
-      const key = avatarFrameKey(dir, frame);
-      const data = buildAvatarPixelData(dir, frame);
-      const palette: Record<string, string> = {
-        ".": "rgba(0,0,0,0)",
-        o: "#0f1727",
-        b: "#ffffff",
-        s: "#d5e3ff",
-        h: "#fef3d8"
-      };
-      scene.textures.generate(key, {
-        data,
-        pixelWidth: 1,
-        palette: palette as any
-      });
+  for (const variant of variants) {
+    for (const dir of dirs) {
+      for (let frame = 0; frame < 3; frame += 1) {
+        const key = avatarFrameKey(variant, dir, frame);
+        const data = buildAvatarPixelData(variant, dir, frame);
+        const palette: Record<string, string> = {
+          ".": "rgba(0,0,0,0)",
+          o: "#0f1727",
+          b: "#ffffff",
+          s: "#d5e3ff",
+          h: "#f2d3b1",
+          p: "#1b1f28"
+        };
+        scene.textures.generate(key, {
+          data,
+          pixelWidth: 1,
+          palette: palette as any
+        });
+      }
     }
   }
 }
 
-function buildAvatarPixelData(dir: Direction, frame: number): string[] {
+function buildAvatarPixelData(variant: "default" | "missionary", dir: Direction, frame: number): string[] {
   const rows = Array.from({ length: 16 }, () => "................".split(""));
   const paint = (x: number, y: number, c: string) => {
     if (x >= 0 && x < 16 && y >= 0 && y < 16) {
@@ -619,10 +635,10 @@ function buildAvatarPixelData(dir: Direction, frame: number): string[] {
     }
   };
 
-  rect(4, 2, 8, 5, "b"); // head
+  rect(4, 2, 8, 5, variant === "missionary" ? "h" : "b"); // head
   rect(5, 7, 6, 5, "b"); // torso
-  rect(5, 12, 2, 3, "b");
-  rect(9, 12, 2, 3, "b");
+  rect(5, 12, 2, 3, variant === "missionary" ? "p" : "b");
+  rect(9, 12, 2, 3, variant === "missionary" ? "p" : "b");
 
   if (dir === "up") {
     rect(6, 4, 4, 1, "s");
@@ -645,12 +661,12 @@ function buildAvatarPixelData(dir: Direction, frame: number): string[] {
 
   if (frame === 1) {
     rect(5, 12, 2, 3, ".");
-    rect(5, 11, 2, 3, "b");
-    rect(9, 12, 2, 3, "b");
+    rect(5, 11, 2, 3, variant === "missionary" ? "p" : "b");
+    rect(9, 12, 2, 3, variant === "missionary" ? "p" : "b");
   } else if (frame === 2) {
     rect(9, 12, 2, 3, ".");
-    rect(9, 11, 2, 3, "b");
-    rect(5, 12, 2, 3, "b");
+    rect(9, 11, 2, 3, variant === "missionary" ? "p" : "b");
+    rect(5, 12, 2, 3, variant === "missionary" ? "p" : "b");
   }
 
   return rows.map((row) => row.join(""));
@@ -1065,9 +1081,6 @@ function openInteractModal(zone: InteractZone) {
     zone.url,
     zone.secondaryCta,
     zone.secondaryUrl,
-    zone.previewImage,
-    zone.previewUrl,
-    zone.previewText,
     zone.id
   );
 }
@@ -1079,9 +1092,6 @@ function openExternalLinkModal(
   url?: string,
   secondaryCta?: string,
   secondaryUrl?: string,
-  previewImage?: string,
-  previewUrl?: string,
-  previewText?: string,
   sourceZoneId?: number
 ) {
   activeZoneModalId = sourceZoneId ?? null;
@@ -1091,33 +1101,11 @@ function openExternalLinkModal(
   const openButton = document.getElementById("interactOpenLink") as HTMLButtonElement;
   const openButton2 = document.getElementById("interactOpenLink2") as HTMLButtonElement;
   const previewCard = document.getElementById("interactPreview") as HTMLElement;
-  const previewImageNode = document.getElementById("interactPreviewImage") as HTMLImageElement;
-  const previewUrlNode = document.getElementById("interactPreviewUrl") as HTMLAnchorElement;
-  const previewTextNode = document.getElementById("interactPreviewText") as HTMLParagraphElement;
 
   titleNode.textContent = title;
   bodyNode.textContent = message;
 
-  const resolvedPreviewUrl = previewUrl ?? url;
-  const hasPreview = Boolean(previewImage || resolvedPreviewUrl || previewText);
-  previewCard.hidden = !hasPreview;
-  if (hasPreview) {
-    previewImageNode.hidden = !previewImage;
-    previewImageNode.src = previewImage ?? "";
-
-    if (resolvedPreviewUrl) {
-      previewUrlNode.hidden = false;
-      previewUrlNode.href = resolvedPreviewUrl;
-      previewUrlNode.textContent = resolvedPreviewUrl;
-    } else {
-      previewUrlNode.hidden = true;
-      previewUrlNode.href = "#";
-      previewUrlNode.textContent = "";
-    }
-
-    previewTextNode.textContent = previewText ?? "";
-    previewTextNode.hidden = !previewText;
-  }
+  previewCard.hidden = true;
 
   if (url) {
     openButton.hidden = false;
