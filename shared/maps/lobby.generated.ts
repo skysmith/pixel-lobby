@@ -1473,6 +1473,42 @@ export const lobbyMap: TiledMap = {
               "value": "Explore both dice projects from this arcade stop."
             }
           ]
+        },
+        {
+          "id": 9,
+          "name": "stop-tony-grove",
+          "type": "interact",
+          "x": 256,
+          "y": 32,
+          "width": 96,
+          "height": 64,
+          "properties": [
+            {
+              "name": "kind",
+              "type": "string",
+              "value": "music"
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "value": "Tony Grove Music"
+            },
+            {
+              "name": "message",
+              "type": "string",
+              "value": "Tony Grove is the solo music project of Skyler Smith, writing and playing original songs. Singer-songwriter, strummy folk-y stuff."
+            },
+            {
+              "name": "cta",
+              "type": "string",
+              "value": "Open Spotify"
+            },
+            {
+              "name": "url",
+              "type": "string",
+              "value": "https://open.spotify.com/artist/683U6wyvDadi5GExsaaojj?si=OcEl7AH6QxWC5-lR8c2oKA&nd=1&dlsi=ae48cad6d69646bd"
+            }
+          ]
         }
       ]
     }
