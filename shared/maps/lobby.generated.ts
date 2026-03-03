@@ -1478,8 +1478,8 @@ export const lobbyMap: TiledMap = {
           "id": 9,
           "name": "stop-tony-grove",
           "type": "interact",
-          "x": 256,
-          "y": 32,
+          "x": 96,
+          "y": 64,
           "width": 96,
           "height": 64,
           "properties": [

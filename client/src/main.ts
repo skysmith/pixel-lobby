@@ -771,6 +771,19 @@ function drawZoneSprite(scene: Phaser.Scene, zone: InteractZone) {
     g.fillCircle(cx + 6, cy + 2, 2);
     g.fillCircle(cx + 21, cy + 6, 1.8);
     scene.add.text(cx, cy - 24, "ARCADE", { color: "#f4fbff", fontSize: "8px" }).setOrigin(0.5).setDepth(8);
+  } else if (zone.kind === "music") {
+    // Music venue (small stage + marquee + notes)
+    g.fillStyle(0x4f2d6e, 1);
+    g.fillRect(cx - 22, cy - 16, 44, 8); // marquee
+    g.fillStyle(0x7f4db0, 1);
+    g.fillRect(cx - 20, cy - 8, 40, 22); // venue wall
+    g.fillStyle(0x2d1a45, 1);
+    g.fillRect(cx - 15, cy + 2, 30, 10); // stage opening
+    g.fillStyle(0xf7de79, 1);
+    g.fillCircle(cx - 8, cy + 4, 1.6);
+    g.fillCircle(cx + 8, cy + 4, 1.6);
+    scene.add.text(cx, cy - 2, "♪", { color: "#ffe98e", fontSize: "13px" }).setOrigin(0.5).setDepth(8);
+    scene.add.text(cx, cy - 21, "MUSIC", { color: "#f7f1ff", fontSize: "8px" }).setOrigin(0.5).setDepth(8);
   } else if (zone.kind === "shop" || zone.kind === "realty") {
     // Shop hut (roof + walls + door)
     const roof = zone.kind === "realty" ? 0x5f6f86 : 0x7c5440;
