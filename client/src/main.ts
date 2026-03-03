@@ -737,7 +737,22 @@ function drawZoneSprite(scene: Phaser.Scene, zone: InteractZone) {
   const g = scene.add.graphics();
   g.setDepth(7);
 
-  if (zone.kind === "lemonade") {
+  if (zone.name === "welcome-sign") {
+    // Welcome lodge (modern mountain building)
+    g.fillStyle(0x3f4f69, 1);
+    g.fillRect(cx - 25, cy - 16, 50, 8); // roof
+    g.fillStyle(0x8ea3bf, 1);
+    g.fillRect(cx - 22, cy - 8, 44, 24); // main wall
+    g.fillStyle(0x2f3d53, 1);
+    g.fillRect(cx - 7, cy + 2, 14, 14); // door
+    g.fillStyle(0xcfe6ff, 1);
+    g.fillRect(cx - 17, cy - 2, 8, 7); // left window
+    g.fillRect(cx + 9, cy - 2, 8, 7); // right window
+    g.fillStyle(0xf9d97d, 1);
+    g.fillCircle(cx - 12, cy + 1, 1.7); // warm lights
+    g.fillCircle(cx + 12, cy + 1, 1.7);
+    scene.add.text(cx, cy - 22, "WELCOME", { color: "#eef5ff", fontSize: "8px" }).setOrigin(0.5).setDepth(8);
+  } else if (zone.kind === "lemonade") {
     // Clementine Kids stand (keep lemonade look, custom label)
     g.fillStyle(0xfde48a, 1);
     g.fillRect(cx - 20, cy - 18, 40, 6);
