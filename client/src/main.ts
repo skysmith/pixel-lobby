@@ -884,7 +884,8 @@ function shouldAutoOpenZone(zone: InteractZone): boolean {
     zone.name === "welcome-sign" ||
     zone.name === "stop-real-estate" ||
     zone.name === "stop-bridger-shop" ||
-    zone.name === "stop-clementine-lemonade"
+    zone.name === "stop-clementine-lemonade" ||
+    zone.name === "stop-tony-grove"
   );
 }
 
